@@ -33,10 +33,9 @@ class Config:
     # Определение среды выполнения
     ENV = os.getenv("ENV", "production").lower()
     
-    # Пути для файлов
     @property
     def GALLERY_PATH(self):
-        return os.path.abspath(os.getenv("GALLERY_PATH", "gallery/"))
+        return os.path.abspath(os.getenv("GALLERY_PATH", "gallery"))
     
     # Валидация email настроек
     if not all([EMAIL_USER, EMAIL_PASSWORD]):
