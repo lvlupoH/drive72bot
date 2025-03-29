@@ -15,8 +15,7 @@ from handlers import (
     callbacks,
     gallery,
     instructors,
-    admin,
-    personal
+    admin
 )
 
 # Настройка логирования
