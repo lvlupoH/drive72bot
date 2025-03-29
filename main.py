@@ -33,6 +33,10 @@ config = Config()
 async def post_init(application: Application) -> None:
     """Инициализация вебхука после запуска"""
     await application.bot.set_webhook(config.WEBHOOK_URL)
+application = Application.builder() \
+    .token(Config.TELEGRAM_TOKEN) \
+    .post_init(post_init) \
+    .build()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /start"""
