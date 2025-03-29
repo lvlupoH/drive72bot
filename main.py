@@ -1,119 +1,93 @@
-import logging
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
     MessageHandler,
     filters,
-    ConversationHandler,
     ContextTypes
 )
 from config import Config
 from handlers import (
-    categories,
-    callbacks,
-    gallery,
-    instructors,
-    admin,
-    personal
+    handle_categories,
+    show_moto_packages,
+    show_auto_packages,
+    setup_callbacks_handler,
+    show_gallery,
+    show_instructors,
+    admin_panel
 )
+import logging
 
-# Настройка логирования
+# Настройка логгера
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Инициализация конфигурации
-config = Config()
-
-async def post_init(application: Application) -> None:
+async def post_init(application):
     """Инициализация вебхука после запуска"""
-    await application.bot.set_webhook(config.WEBHOOK_URL)
-application = Application.builder() \
-    .token(Config.TELEGRAM_TOKEN) \
-    .post_init(post_init) \
-    .build()
+    await application.bot.set_webhook(Config.WEBHOOK_URL)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработчик команды /start"""
-    user = update.effective_user
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /start с главным меню"""
     keyboard = [
-        [{"text": "Категории", "callback_data": "categories"}],
-        [{"text": "Обратный звонок", "callback_data": "callback_request"}],
-        [{"text": "Галерея", "callback_data": "gallery"}],
-        [{"text": "Инструктора", "callback_data": "instructors"}],
-        [{"text": "Личный кабинет", "callback_data": "personal_cabinet"}],
-        [{"text": "Доп. занятия", "callback_data": "extra_lessons"}]
+        [InlineKeyboardButton("Категории", callback_data="categories")],
+        [InlineKeyboardButton("Обратный звонок", callback_data="callback")],
+        [InlineKeyboardButton("Галерея", callback_data="gallery")],
+        [InlineKeyboardButton("Инструктора", callback_data="instructors")],
+        [InlineKeyboardButton("Личный кабинет", callback_data="personal_cabinet")]
     ]
     
-    await update.message.reply_text(
-        f"Добро пожаловать в автошколу Drive, {user.first_name}!",
-        reply_markup={
-            "inline_keyboard": keyboard
-        }
-    )
+    if update.message:
+        await update.message.reply_text(
+            "🏍️ Добро пожаловать в автошколу Drive!\n"
+            "Выберите нужный раздел:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+    else:
+        await update.callback_query.edit_message_text(
+            "🏍️ Добро пожаловать в автошколу Drive!\n"
+            "Выберите нужный раздел:",
+            reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик кнопки Назад"""
-    query = update.callback_query
-    await query.answer()
     await start(update, context)
 
-def setup_handlers(application: Application) -> None:
-    """Регистрация всех обработчиков"""
-    # Основные команды
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Логирование ошибок"""
+    logger.error(msg="Ошибка обработки запроса", exc_info=context.error)
+
+def main():
+    """Основная функция инициализации бота"""
+    config = Config()
+    
+    # Создаем приложение
+    application = Application.builder() \
+        .token(config.TELEGRAM_TOKEN) \
+        .post_init(post_init) \
+        .build()
+
+    # Регистрируем обработчики
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("admin", admin.admin_panel))
+    application.add_handler(CommandHandler("admin", admin_panel))
     
     # Обработчики callback-запросов
-    application.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
-    application.add_handler(CallbackQueryHandler(instructors.show_instructors, pattern="^instructors$"))
-    application.add_handler(CallbackQueryHandler(gallery.show_gallery, pattern="^gallery$"))
-    application.add_handler(CallbackQueryHandler(personal.show_cabinet, pattern="^personal_cabinet$"))
-    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_main$"))
+    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories"))
+    application.add_handler(CallbackQueryHandler(show_moto_packages, pattern="^cat_a"))
+    application.add_handler(CallbackQueryHandler(show_auto_packages, pattern="^cat_b"))
+    application.add_handler(CallbackQueryHandler(show_gallery, pattern="^gallery"))
+    application.add_handler(CallbackQueryHandler(show_instructors, pattern="^instructors"))
+    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_main"))
     
-    # Обработчик обратного звонка (ConversationHandler)
-    conv_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(callbacks.start_callback, pattern="^callback_request$")],
-        states={
-            callbacks.NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, callbacks.get_name)],
-            callbacks.PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, callbacks.get_phone)],
-            callbacks.QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, callbacks.get_question)]
-        },
-        fallbacks=[CommandHandler("cancel", callbacks.cancel)]
-    )
-    application.add_handler(conv_handler)
+    # Диалог обратного звонка
+    application.add_handler(setup_callbacks_handler())
     
-    # Обработчик дополнительных занятий
-    application.add_handler(CallbackQueryHandler(callbacks.handle_extra_lessons, pattern="^extra_lessons$"))
-    
-    # Обработчик расписания
-    application.add_handler(CallbackQueryHandler(schedule.show_schedule, pattern="^show_schedule$"))
-    
-    # Админские обработчики
-    application.add_handler(CallbackQueryHandler(admin.handle_admin_panel, pattern="^admin_"))
-    
-    # Обработчик ошибок
+    # Обработка ошибок
     application.add_error_handler(error_handler)
 
-async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработчик ошибок"""
-    logger.error(msg="Exception while handling an update:", exc_info=context.error)
-    if config.ENV == "development":
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"Произошла ошибка: {context.error}"
-        )
-
-def run_bot() -> None:
-    """Запуск бота в нужном режиме"""
-    application = Application.builder().token(config.TELEGRAM_TOKEN).post_init(post_init).build()
-    
-    setup_handlers(application)
-    
+    # Запуск в зависимости от среды
     if config.ENV == "production":
         application.run_webhook(
             listen="0.0.0.0",
@@ -121,10 +95,8 @@ def run_bot() -> None:
             webhook_url=config.WEBHOOK_URL,
             secret_token='WEBHOOK_SECRET'
         )
-        logger.info("Бот запущен в режиме WEBHOOK")
     else:
         application.run_polling()
-        logger.info("Бот запущен в режиме POLLING")
 
 if __name__ == "__main__":
-    run_bot()
+    main()
