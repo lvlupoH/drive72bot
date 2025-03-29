@@ -2,6 +2,10 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler
 from config import Config
+from handlers.admin import setup_admin_handlers
+
+def setup_handlers(application):
+    setup_admin_handlers(application)
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик админ-панели"""
