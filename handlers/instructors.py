@@ -1,5 +1,5 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CallbackQueryHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes, CallbackQueryHandler
 
 async def show_instructors(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -31,6 +31,8 @@ async def show_instructors(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [[InlineKeyboardButton("Назад", callback_data="back_main")]]
     
+    # Исправленная строка с закрывающей скобкой
     await query.edit_message_text(
         text=response,
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
