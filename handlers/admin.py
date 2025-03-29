@@ -1,29 +1,21 @@
-# handlers/admin.py
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CommandHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CommandHandler, CallbackQueryHandler
 from config import Config
-from handlers.admin import setup_admin_handlers
 
-def setup_handlers(application):
-    setup_admin_handlers(application)
-
-async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик админ-панели"""
+async def admin_panel(update, context):
     if update.effective_user.id not in Config.ADMINS:
-        await update.message.reply_text("❌ Доступ запрещен")
         return
-
+    
     keyboard = [
         [InlineKeyboardButton("Добавить расписание", callback_data="add_schedule")],
-        [InlineKeyboardButton("Редактировать пользователей", callback_data="edit_users")],
-        [InlineKeyboardButton("Статистика", callback_data="stats")]
+        [InlineKeyboardButton("Изменить статус пользователя", callback_data="edit_user")]
     ]
     
     await update.message.reply_text(
-        "🛠 Админ-панель:",
+        "Админ-панель:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# Добавьте это для правильного импорта
 def setup_admin_handlers(application):
     application.add_handler(CommandHandler("admin", admin_panel))
+    application.add_handler(CallbackQueryHandler(admin_panel, pattern="^add_schedule|edit_user$"))
