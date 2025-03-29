@@ -16,7 +16,6 @@ from handlers import (
     gallery,
     instructors,
     admin,
-    schedule,
     personal
 )
 
