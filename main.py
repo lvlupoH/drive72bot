@@ -45,6 +45,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🏍️ Добро пожаловать в автошколу Drive!\n"
             "Выберите нужный раздел:",
             reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     else:
         await update.callback_query.edit_message_text(
             "🏍️ Добро пожаловать в автошколу Drive!\n"
