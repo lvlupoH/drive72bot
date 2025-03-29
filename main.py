@@ -53,6 +53,8 @@ def main():
     application.add_handler(callbacks.setup_callbacks_handler())
     application.add_handler(MessageHandler(filters.PHOTO, gallery.handle_photo))
     application.add_handler(CommandHandler("admin", admin.admin_panel))
+    application.add_handler(CommandHandler("gallery", gallery.show_gallery))
+    application.add_handler(MessageHandler(filters.PHOTO, gallery.handle_photo))
 
     # Запуск в зависимости от среды
     if os.environ.get('ENV') == 'production':
