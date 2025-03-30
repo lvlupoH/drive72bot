@@ -1,5 +1,12 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    filters,
+    ContextTypes,
+)
 from config import Config
 from handlers import (
     handle_categories,
@@ -8,20 +15,16 @@ from handlers import (
     show_package_details,
     handle_back,
     get_callback_conversation_handler,
-    show_gallery,
-    show_instructors,
-    admin_panel
 )
 import logging
+import telegram
 
-# Настройка логгирования
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-async def start(update, context):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("Категории", callback_data="categories")],
         [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
@@ -34,8 +37,15 @@ async def start(update, context):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def error_handler(update, context):
-    logger.error(msg="Ошибка в обработчике:", exc_info=context.error)
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.error("Ошибка в обработчике:", exc_info=context.error)
+    
+    if isinstance(context.error, telegram.error.BadRequest):
+        if "Message is not modified" in str(context.error):
+            logger.warning("Игнорируем ошибку неизмененного сообщения")
+            return
+            
+    await update.message.reply_text("Произошла ошибка. Пожалуйста, попробуйте снова.")
 
 def main():
     config = Config()
@@ -51,16 +61,17 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_back, pattern="^back_"))
     application.add_error_handler(error_handler)
     
-    # Настройка вебхука
     if config.DEPLOY_ENV == "production":
         application.run_webhook(
             listen="0.0.0.0",
             port=config.PORT,
             webhook_url=config.WEBHOOK_URL,
-            drop_pending_updates=True  # Важно для избежания конфликтов
+            drop_pending_updates=True,
         )
+        logger.info("Бот запущен через вебхук")
     else:
         application.run_polling(drop_pending_updates=True)
+        logger.info("Бот запущен в режиме поллинга")
 
 if __name__ == "__main__":
     main()
