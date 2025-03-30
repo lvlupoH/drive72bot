@@ -1,15 +1,18 @@
 from telegram import Update
 from telegram.ext import (
-    ContextTypes, 
+    ContextTypes,
     ConversationHandler,
     CallbackQueryHandler,
     MessageHandler,
     CommandHandler,
-    filters
+    filters,
 )
 from config import Config
 import smtplib
 from email.mime.text import MIMEText
+import logging
+
+logger = logging.getLogger(__name__)
 
 NAME, PHONE, QUESTION = range(3)
 
@@ -30,12 +33,16 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['question'] = update.message.text
-    await send_callback_email(
-        context.user_data['name'],
-        context.user_data['phone'],
-        context.user_data['question']
-    )
-    await update.message.reply_text("Ваш запрос отправлен администратору!")
+    try:
+        await send_callback_email(
+            context.user_data['name'],
+            context.user_data['phone'],
+            context.user_data['question']
+        )
+        await update.message.reply_text("✅ Ваш запрос отправлен администратору!")
+    except Exception as e:
+        logger.error(f"Ошибка отправки email: {e}")
+        await update.message.reply_text("❌ Ошибка отправки запроса. Попробуйте позже.")
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -64,5 +71,7 @@ async def send_callback_email(name: str, phone: str, question: str):
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
             server.send_message(msg)
+            logger.info("Email успешно отправлен")
     except Exception as e:
-        print(f"Ошибка отправки email: {e}")
+        logger.error(f"Ошибка отправки email: {e}")
+        raise
