@@ -175,3 +175,9 @@ cython_debug/
 .env
 *.pyc
 __pycache__/
+
+.env
+bot_errors.log
+bot_debug.log
+__pycache__/
+*.pyc
