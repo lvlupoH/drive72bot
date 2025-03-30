@@ -5,8 +5,6 @@ from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    MessageHandler,
-    filters,
     ContextTypes
 )
 from config import Config
@@ -35,7 +33,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def post_init(application):
-    await asyncio.sleep(2)
+    await asyncio.sleep(5)
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
@@ -45,12 +43,8 @@ def main():
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(get_callback_handler())
-    
-    # Категории
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
-    
-    # Назад
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
     
     # Админ-панель
