@@ -4,3 +4,5 @@ psycopg2-binary==2.9.9
 sqlalchemy==2.0.23
 python-multipart==0.0.6
 httpx==0.23.3
+from database import Base
+target_metadata = Base.metadata
