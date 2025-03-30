@@ -1,5 +1,12 @@
 from telegram import Update
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram.ext import (
+    ContextTypes, 
+    ConversationHandler,
+    CallbackQueryHandler,  # Добавлен недостающий импорт
+    MessageHandler,
+    CommandHandler,
+    filters
+)
 from config import Config
 import smtplib
 from email.mime.text import MIMEText
@@ -39,9 +46,9 @@ def get_callback_conversation_handler():
     return ConversationHandler(
         entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
         states={
-            NAME: [MessageHandler(filters.TEXT, get_name)],
-            PHONE: [MessageHandler(filters.TEXT, get_phone)],
-            QUESTION: [MessageHandler(filters.TEXT, get_question)]
+            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
+            PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
+            QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
         fallbacks=[CommandHandler('cancel', cancel)]
     )
