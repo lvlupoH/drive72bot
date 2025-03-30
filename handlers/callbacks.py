@@ -57,4 +57,5 @@ def get_callback_handler() -> ConversationHandler:
             QUESTION: [MessageHandler(filters.TEXT, send_request)]
         },
         fallbacks=[]
+        per_message=True 
     )
