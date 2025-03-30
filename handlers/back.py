@@ -1,23 +1,18 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import ContextTypes
-from .categories import handle_categories
 
 async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    data = query.data
     
-    if data == "back_main":
+    if query.data == "back_main":
         keyboard = [
-            [InlineKeyboardButton("Категории", callback_data="categories")],
-            [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
-            [InlineKeyboardButton("Галерея", callback_data="gallery")],
-            [InlineKeyboardButton("Инструктора", callback_data="instructors")],
-            [InlineKeyboardButton("Личный кабинет", callback_data="profile")]
+            [{"text": "Категории", "callback_data": "categories"}],
+            [{"text": "Обратный звонок", "callback_data": "callback_request"}]
         ]
         await query.edit_message_text(
-            text="Главное меню",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            "Главное меню:",
+            reply_markup={"inline_keyboard": keyboard}
         )
-    elif data == "back_categories":
+    elif query.data == "back_categories":
         await handle_categories(update, context)
