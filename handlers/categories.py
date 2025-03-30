@@ -1,134 +1,52 @@
-# handlers/categories.py
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from config import Config
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes
 
-async def handle_categories(update, context):
-    """Обработчик кнопки 'Категории'"""
+CATEGORIES = {
+    "cat_a": {
+        "title": "Категория А, А1",
+        "packages": {
+            "МОТО1": {"price": 10000, "desc": "Базовый курс"},
+            "МОТО2": {"price": 15000, "desc": "Продвинутый курс"}
+        }
+    },
+    "cat_b": {
+        "title": "Категория В",
+        "packages": {
+            "АВТО1": {"price": 20000, "desc": "Начальный уровень"},
+            "АВТО2": {"price": 25000, "desc": "Полный курс"}
+        }
+    }
+}
+
+async def show_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
-    
     keyboard = [
-        [InlineKeyboardButton("🏍 Категория А, А1", callback_data="cat_a")],
-        [InlineKeyboardButton("🚗 Категория В", callback_data="cat_b")],
-        [InlineKeyboardButton("🔙 Назад", callback_data="main_menu")]
+        [InlineKeyboardButton("Категория А, А1", callback_data="cat_a")],
+        [InlineKeyboardButton("Категория В", callback_data="cat_b")],
+        [InlineKeyboardButton("Назад", callback_data="back_main")]
     ]
-    
     await query.edit_message_text(
-        text="<b>Выберите категорию обучения:</b>\n\n"
-             "ℹ️ Подробное описание каждой категории:",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='HTML'
+        text="Выберите категорию:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def show_moto_packages(update, context):
-    """Пакеты для категории А, А1"""
+async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    category = query.data
     
-    packages = {
-        "МОТО1": {
-            "desc": "Базовый курс (10 занятий)",
-            "price": "15 000₽",
-            "details": "Теория ПДД + практика на автодроме"
-        },
-        "МОТО2": {
-            "desc": "Продвинутый курс (15 занятий)", 
-            "price": "20 000₽",
-            "details": "Городское вождение + ночные занятия"
-        },
-        "МОТО3": {
-            "desc": "Индивидуальные занятия",
-            "price": "2 500₽/час",
-            "details": "Персональный инструктор"
-        },
-        "МОТО4": {
-            "desc": "Подготовка к экзамену",
-            "price": "10 000₽",
-            "details": "Марафон перед экзаменом в ГИБДД"
-        }
-    }
+    packages = CATEGORIES[category]["packages"]
+    buttons = []
     
-    keyboard = []
     for name, data in packages.items():
         btn = InlineKeyboardButton(
-            f"{name} - {data['price']}", 
-            callback_data=f"moto_{name.lower()}"
+            f"{name} - {data['price']}₽",
+            callback_data=f"package_{name}"
         )
-        keyboard.append([btn])
+        buttons.append([btn])
     
-    keyboard.extend([
-        [InlineKeyboardButton("💳 Оплатить онлайн", url=Config.PAYMENT_URL)],
-        [InlineKeyboardButton("🔙 Назад", callback_data="categories")]
-    ])
-    
-    text = "<b>Пакеты категории А, А1:</b>\n\n"
-    for name, data in packages.items():
-        text += f"▪️ <b>{name}</b>\n{data['desc']}\n{data['details']}\n\n"
+    buttons.append([InlineKeyboardButton("Назад", callback_data="back_categories")])
     
     await query.edit_message_text(
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='HTML'
+        text=f"{CATEGORIES[category]['title']}\n\nВыберите пакет:",
+        reply_markup=InlineKeyboardMarkup(buttons)
     )
-
-async def show_auto_packages(update, context):
-    """Пакеты для категории В"""
-    query = update.callback_query
-    await query.answer()
-    
-    packages = {
-        "АВТО1": {
-            "desc": "Начальный курс (10 занятий)",
-            "price": "25 000₽",
-            "details": "Основы вождения на автодроме"
-        },
-        "АВТО2": {
-            "desc": "Полный курс (20 занятий)",
-            "price": "45 000₽", 
-            "details": "Автодром + городское вождение"
-        },
-        "АВТО3": {
-            "desc": "Интенсивный курс",
-            "price": "3 000₽/час",
-            "details": "Ускоренная подготовка"
-        },
-        "АВТО4": {
-            "desc": "Повышение квалификации",
-            "price": "15 000₽",
-            "details": "Для опытных водителей"
-        }
-    }
-    
-    keyboard = []
-    for name, data in packages.items():
-        btn = InlineKeyboardButton(
-            f"{name} - {data['price']}", 
-            callback_data=f"auto_{name.lower()}"
-        )
-        keyboard.append([btn])
-    
-    keyboard.extend([
-        [InlineKeyboardButton("💳 Оплатить онлайн", url=Config.PAYMENT_URL)],
-        [InlineKeyboardButton("🔙 Назад", callback_data="categories")]
-    ])
-    
-    text = "<b>Пакеты категории В:</b>\n\n"
-    for name, data in packages.items():
-        text += f"▪️ <b>{name}</b>\n{data['desc']}\n{data['details']}\n\n"
-    
-    await query.edit_message_text(
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='HTML'
-    )
-
-async def handle_back(update, context):
-    """Обработчик кнопки 'Назад'"""
-    query = update.callback_query
-    await query.answer()
-    
-    if query.data == "back_categories":
-        return await handle_categories(update, context)
-    elif query.data == "main_menu":
-        from . import start  # Импорт здесь для избежания циклических зависимостей
-        return await start(update, context)
