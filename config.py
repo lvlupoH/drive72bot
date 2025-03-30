@@ -28,7 +28,7 @@ class Config:
     
     # Webhook настройки
     WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-    PORT = int(os.getenv("PORT", 8443))  # Порт по умолчанию для вебхуков
+    PORT = int(os.getenv("PORT", 10000))  # Порт по умолчанию для вебхуков
     
     # Определение среды выполнения
     ENV = os.getenv("ENV", "production").lower()
