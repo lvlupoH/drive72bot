@@ -62,7 +62,8 @@ def main():
     application.run_webhook(
         listen="0.0.0.0",
         port=config.PORT,
-        webhook_url=config.WEBHOOK_URL
+        webhook_url=config.WEBHOOK_URL,
+        secret_token="WEBHOOK_SECRET"
     )
 
 if __name__ == "__main__":
