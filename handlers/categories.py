@@ -50,7 +50,6 @@ async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     buttons.append([InlineKeyboardButton("Назад", callback_data="back_categories")])
     
-    # Удален дублирующий вызов
     await query.edit_message_text(
         text=f"{CATEGORIES[category]['title']}\n\nВыберите пакет:",
         reply_markup=InlineKeyboardMarkup(buttons)
