@@ -56,6 +56,6 @@ def get_callback_handler() -> ConversationHandler:
             PHONE: [MessageHandler(filters.TEXT, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT, send_request)]
         },
-        fallbacks=[]
+        fallbacks=[],
         per_message=True 
     )
