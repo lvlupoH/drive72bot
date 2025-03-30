@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import ContextTypes
-from .categories import handle_categories  # Добавлен импорт
+from .categories import handle_categories
 
 async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -8,8 +8,10 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if query.data == "back_main":
         keyboard = [
-            [{"text": "Категории", "callback_data": "categories"}],
-            [{"text": "Обратный звонок", "callback_data": "callback_request"}]
+            [{"text": "🏍 Категории", "callback_data": "categories"}],
+            [{"text": "📞 Обратный звонок", "callback_data": "callback_request"}],
+            [{"text": "📷 Галерея", "callback_data": "gallery"}],
+            [{"text": "👤 Личный кабинет", "callback_data": "profile"}]
         ]
         await query.edit_message_text(
             "Главное меню:",
