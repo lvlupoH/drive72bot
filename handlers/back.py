@@ -1,6 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CallbackQueryHandler
-from handlers.categories import handle_categories
+from telegram.ext import ContextTypes
+from .categories import handle_categories
 
 async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -18,6 +18,6 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             text="Главное меню",
             reply_markup=InlineKeyboardMarkup(keyboard)
-            
+        )
     elif data == "back_categories":
         await handle_categories(update, context)
