@@ -31,7 +31,6 @@ async def handle_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    category = update.callback_query.data
     query = update.callback_query
     category = query.data
     
