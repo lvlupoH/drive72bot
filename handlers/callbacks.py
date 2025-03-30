@@ -1,6 +1,7 @@
 # handlers/callbacks.py
 from telegram import Update
 from telegram.ext import (
+    CallbackQueryHandler,
     ContextTypes,
     ConversationHandler,
     MessageHandler,
