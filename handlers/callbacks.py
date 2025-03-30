@@ -1,11 +1,10 @@
-# handlers/callbacks.py
 from telegram import Update
 from telegram.ext import (
-    CallbackQueryHandler,
-    ContextTypes,
-    ConversationHandler,
+    CallbackQueryHandler,  # Добавленный импорт
     MessageHandler,
-    filters
+    filters,
+    ConversationHandler,
+    ContextTypes
 )
 from config import Config
 import smtplib
@@ -20,24 +19,20 @@ async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получение имени"""
     context.user_data['name'] = update.message.text
     await update.message.reply_text("Введите ваш телефон:")
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получение телефона"""
     context.user_data['phone'] = update.message.text
     await update.message.reply_text("Кратко опишите вопрос:")
     return QUESTION
 
 async def send_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отправка данных на почту"""
     question = update.message.text
     name = context.user_data['name']
     phone = context.user_data['phone']
     
-    # Формирование письма
     msg = MIMEText(f"Имя: {name}\nТелефон: {phone}\nВопрос: {question}")
     msg['Subject'] = 'Новый запрос обратного звонка'
     msg['From'] = Config.EMAIL_USER
@@ -49,12 +44,11 @@ async def send_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
             server.send_message(msg)
         await update.message.reply_text("✅ Заявка отправлена!")
     except Exception as e:
-        await update.message.reply_text("❌ Ошибка отправки!")
+        await update.message.reply_text(f"❌ Ошибка: {str(e)}")
     
     return ConversationHandler.END
 
 def get_callback_handler() -> ConversationHandler:
-    """Возвращает настроенный ConversationHandler"""
     return ConversationHandler(
         entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
         states={
