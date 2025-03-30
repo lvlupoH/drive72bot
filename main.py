@@ -20,6 +20,9 @@ from handlers import (
     admin
 )
 
+# main.py
+from handlers.callbacks import get_callback_handler  # Явный импорт
+
 # Настройка логгирования
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -58,6 +61,8 @@ def main():
         .token(config.TELEGRAM_TOKEN) \
         .post_init(post_init) \
         .build()
+
+    application.add_handler(get_callback_handler())  # Регистрация ConversationHandler
 
     # ================== Регистрация обработчиков ================== #
 
