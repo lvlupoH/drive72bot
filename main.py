@@ -12,6 +12,7 @@ from telegram.ext import (
 from config import Config
 from handlers import (
     handle_categories,
+    show_packages,
     get_callback_handler,
     show_gallery,
     show_instructors,
