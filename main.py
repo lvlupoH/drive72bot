@@ -6,10 +6,7 @@ from handlers import (
     show_auto_packages,
     show_package_details,
     handle_back,
-    start_callback,
-    get_name,
-    get_phone,
-    get_question,
+    get_callback_conversation_handler,  # Новый импорт
     show_gallery,
     show_instructors,
     admin_panel
@@ -34,19 +31,15 @@ def main():
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories"))
-    application.add_handler(CallbackQueryHandler(show_moto_packages, pattern="^cat_moto$"))
-    application.add_handler(CallbackQueryHandler(show_auto_packages, pattern="^cat_auto$"))
-    application.add_handler(CallbackQueryHandler(show_package_details, pattern="^package_"))
-    application.add_handler(CallbackQueryHandler(handle_back, pattern="^back_"))
+    application.add_handler(get_callback_conversation_handler())  # Добавлен ConversationHandler
     
-    # Настройка вебхука
+    # Остальные обработчики...
+    
     if config.DEPLOY_ENV == "production":
         application.run_webhook(
             listen="0.0.0.0",
             port=config.PORT,
-            webhook_url=config.WEBHOOK_URL
-        )
+            webhook_url=config.WEBHOOK_URL)
     else:
         application.run_polling()
 
