@@ -2,9 +2,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 from telegram import Update
 
-# Данные пакетов
 PACKAGES = {
-    # Мотопакеты
     "МОТО1": {
         "price": "10000₽",
         "desc": "1) Теоретические занятия 8 часов\n2) Практические занятия 8 часов",
@@ -15,7 +13,6 @@ PACKAGES = {
         "desc": "1) Теоретические занятия 12 часов\n2) Практические занятия 12 часов",
         "category": "moto"
     },
-    # Автопакеты
     "АВТО1": {
         "price": "20000₽",
         "desc": "1) Теоретические занятия 16 часов\n2) Практические занятия 10 часов",
