@@ -31,7 +31,8 @@ async def handle_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         text="Выберите категорию:",
         reply_markup=InlineKeyboardMarkup(keyboard)
-        
+    )  # Была отсутствующая скобка
+
 async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -42,7 +43,7 @@ async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for name, data in packages.items():
         btn = InlineKeyboardButton(
-            f"{name} - {data['price']}₽", 
+            f"{name} - {data['price']}₽",
             callback_data=f"package_{name}"
         )
         buttons.append([btn])
@@ -52,3 +53,4 @@ async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         text=f"{CATEGORIES[category]['title']}\n\nВыберите пакет:",
         reply_markup=InlineKeyboardMarkup(buttons)
+    )
