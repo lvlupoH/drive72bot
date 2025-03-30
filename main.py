@@ -1,5 +1,12 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram import Update
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    filters,
+    ContextTypes
+)
 from config import Config
 from handlers import (
     handle_categories,
@@ -8,23 +15,14 @@ from handlers import (
     show_package_details,
     handle_back,
     get_callback_conversation_handler,
-    show_gallery,
-    show_instructors,
-    admin_panel
+    show_main_menu
 )
 
-async def start(update, context):
-    keyboard = [
-        [InlineKeyboardButton("Категории", callback_data="categories")],
-        [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
-        [InlineKeyboardButton("Галерея", callback_data="gallery")],
-        [InlineKeyboardButton("Инструктора", callback_data="instructors")],
-        [InlineKeyboardButton("Личный кабинет", callback_data="personal_cabinet")]
-    ]
-    await update.message.reply_text(
-        "Добро пожаловать в автошколу Drive!",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await show_main_menu(update, context)
+
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"Произошла ошибка: {context.error}")
 
 def main():
     config = Config()
@@ -39,14 +37,19 @@ def main():
     application.add_handler(CallbackQueryHandler(show_package_details, pattern="^package_"))
     application.add_handler(CallbackQueryHandler(handle_back, pattern="^back_"))
     
+    # Обработчик ошибок
+    application.add_error_handler(error_handler)
+    
     # Настройка вебхука
     if config.DEPLOY_ENV == "production":
         application.run_webhook(
             listen="0.0.0.0",
             port=config.PORT,
-            webhook_url=config.WEBHOOK_URL)
+            webhook_url=config.WEBHOOK_URL,
+            allowed_updates=Update.ALL_TYPES
+        )
     else:
-        application.run_polling()
+        application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     main()
