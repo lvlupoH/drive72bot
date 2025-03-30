@@ -32,10 +32,10 @@ async def handle_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("◀️ Назад", callback_data="back_main")]
     ]
     
-    await query.edit_message_text(
+    await query.edit_message_text(  # Исправлено: добавлена закрывающая скобка
         text="Выберите категорию обучения:",
         reply_markup=InlineKeyboardMarkup(keyboard)
-    
+    )
 
 async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -45,7 +45,6 @@ async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     packages = CATEGORIES[category]["packages"]
     buttons = []
     
-    # Сортировка по цене
     sorted_packages = sorted(
         packages.items(),
         key=lambda x: x[1]['price']
@@ -64,7 +63,6 @@ async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         buttons.append(btn_row)
     
-    # Добавляем описание
     text = f"{CATEGORIES[category]['title']}\n\n"
     for name, data in sorted_packages:
         text += f"▪️ <b>{name}</b>\nЦена: {data['price']}₽\n{data['desc']}\n\n"
