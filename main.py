@@ -51,7 +51,8 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(get_callback_handler())
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
-    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
+    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))  # Для категорий
+    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))  # Для кнопок "Назад"
     application.add_handler(CallbackQueryHandler(back_main_menu, pattern="^back_main$"))
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^back_categories$"))
     application.add_handler(CallbackQueryHandler(show_gallery, pattern="^gallery$"))
