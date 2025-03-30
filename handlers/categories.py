@@ -18,7 +18,7 @@ CATEGORIES = {
     }
 }
 
-async def show_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     keyboard = [
         [InlineKeyboardButton("Категория А, А1", callback_data="cat_a")],
