@@ -17,10 +17,15 @@ from handlers import (
     get_callback_conversation_handler,
 )
 import logging
-import telegram
 
+# Настройка логгирования
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("bot.log")
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -38,14 +43,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.error("Ошибка в обработчике:", exc_info=context.error)
-    
-    if isinstance(context.error, telegram.error.BadRequest):
-        if "Message is not modified" in str(context.error):
-            logger.warning("Игнорируем ошибку неизмененного сообщения")
-            return
-            
-    await update.message.reply_text("Произошла ошибка. Пожалуйста, попробуйте снова.")
+    """Обработчик глобальных ошибок"""
+    try:
+        if update and update.message:
+            await update.message.reply_text("⚠️ Произошла ошибка. Пожалуйста, попробуйте позже.")
+        logger.error("Исключение при обработке обновления:", exc_info=context.error)
+    except Exception as e:
+        logger.critical(f"КРИТИЧЕСКАЯ ОШИБКА В ОБРАБОТЧИКЕ ОШИБОК: {e}")
 
 def main():
     config = Config()
@@ -61,17 +65,22 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_back, pattern="^back_"))
     application.add_error_handler(error_handler)
     
+    # Настройка вебхука
     if config.DEPLOY_ENV == "production":
+        logger.info("Запуск в режиме PRODUCTION с вебхуком")
         application.run_webhook(
             listen="0.0.0.0",
             port=config.PORT,
             webhook_url=config.WEBHOOK_URL,
             drop_pending_updates=True,
+            allowed_updates=Update.ALL_TYPES
         )
-        logger.info("Бот запущен через вебхук")
     else:
-        application.run_polling(drop_pending_updates=True)
-        logger.info("Бот запущен в режиме поллинга")
+        logger.info("Запуск в режиме DEVELOPMENT с поллингом")
+        application.run_polling(
+            drop_pending_updates=True,
+            allowed_updates=Update.ALL_TYPES
+        )
 
 if __name__ == "__main__":
     main()
