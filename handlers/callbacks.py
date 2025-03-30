@@ -1,3 +1,4 @@
+# handlers/callbacks.py
 from telegram import Update
 from telegram.ext import (
     ContextTypes,
@@ -5,27 +6,60 @@ from telegram.ext import (
     MessageHandler,
     filters
 )
+from config import Config
 import smtplib
 from email.mime.text import MIMEText
-from config import Config
 
+# Стадии диалога
 NAME, PHONE, QUESTION = range(3)
 
-async def start_callback_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Начало запроса обратного звонка"""
     await update.callback_query.message.reply_text("Введите ваше имя:")
     return NAME
 
-async def process_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получение имени"""
     context.user_data['name'] = update.message.text
     await update.message.reply_text("Введите ваш телефон:")
     return PHONE
 
-async def send_callback_email(name: str, phone: str):
-    msg = MIMEText(f"Новый запрос обратного звонка:\nИмя: {name}\nТелефон: {phone}")
-    msg['Subject'] = 'Обратный звонок'
+async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Получение телефона"""
+    context.user_data['phone'] = update.message.text
+    await update.message.reply_text("Кратко опишите вопрос:")
+    return QUESTION
+
+async def send_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Отправка данных на почту"""
+    question = update.message.text
+    name = context.user_data['name']
+    phone = context.user_data['phone']
+    
+    # Формирование письма
+    msg = MIMEText(f"Имя: {name}\nТелефон: {phone}\nВопрос: {question}")
+    msg['Subject'] = 'Новый запрос обратного звонка'
     msg['From'] = Config.EMAIL_USER
     msg['To'] = Config.ADMIN_EMAIL
+    
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
+            server.send_message(msg)
+        await update.message.reply_text("✅ Заявка отправлена!")
+    except Exception as e:
+        await update.message.reply_text("❌ Ошибка отправки!")
+    
+    return ConversationHandler.END
 
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-        server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
-        server.send_message(msg)
+def get_callback_handler() -> ConversationHandler:
+    """Возвращает настроенный ConversationHandler"""
+    return ConversationHandler(
+        entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
+        states={
+            NAME: [MessageHandler(filters.TEXT, get_name)],
+            PHONE: [MessageHandler(filters.TEXT, get_phone)],
+            QUESTION: [MessageHandler(filters.TEXT, send_request)]
+        },
+        fallbacks=[]
+    )
