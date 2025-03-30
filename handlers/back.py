@@ -1,5 +1,6 @@
 from telegram import Update
 from telegram.ext import ContextTypes
+from .categories import handle_categories  # Добавлен импорт
 
 async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
