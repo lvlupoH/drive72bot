@@ -32,3 +32,22 @@ async def get_user_data(telegram_id: int):
         return None
     finally:
         session.close()
+
+# Добавьте в конец database.py
+def init_test_data():
+    session = Session()
+    try:
+        if not session.query(User).first():
+            test_user = User(
+                telegram_id=249423404,  # Ваш Telegram ID
+                start_date="2025-01-01",
+                end_date="2025-12-31",
+                lessons_left=10
+            )
+            session.add(test_user)
+            session.commit()
+    finally:
+        session.close()
+
+# Вызов функции при первом запуске
+init_test_data()
