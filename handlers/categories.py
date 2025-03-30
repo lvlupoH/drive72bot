@@ -111,7 +111,7 @@ async def show_package_details(update: Update, context: CallbackContext):
         
         payment_button = InlineKeyboardButton(
             "💳 Оплатить", 
-            url="https://driveavto72.ru/"
+            url="https://sberbank.ru/qr/?uuid=4000029863"
         )
         back_button = InlineKeyboardButton(
             "⬅️ Назад", 
