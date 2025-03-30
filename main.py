@@ -39,7 +39,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def post_init(app):
-    await asyncio.sleep(2)
+    await asyncio.sleep(5)  # Увеличьте задержку до 5 секунд
     await app.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
