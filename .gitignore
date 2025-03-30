@@ -181,3 +181,10 @@ bot_errors.log
 bot_debug.log
 __pycache__/
 *.pyc
+
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
