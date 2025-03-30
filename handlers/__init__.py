@@ -1,5 +1,6 @@
-from .categories import handle_categories, show_packages, back_main_menu
+from .categories import handle_categories, show_packages
 from .callbacks import get_callback_handler  # Исправленный импорт
+from .back import back_handler
 from .gallery import show_gallery
 from .instructors import show_instructors
 from .profile import show_profile
