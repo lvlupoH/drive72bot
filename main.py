@@ -52,12 +52,12 @@ def main():
     application.add_handler(get_callback_handler())
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))  # Для категорий
-    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))  # Для кнопок "Назад"
     application.add_handler(CallbackQueryHandler(back_main_menu, pattern="^back_main$"))
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^back_categories$"))
     application.add_handler(CallbackQueryHandler(show_gallery, pattern="^gallery$"))
     application.add_handler(CallbackQueryHandler(show_instructors, pattern="^instructors$"))
     application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
+    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))  # Для кнопок "Назад"
     
     # Админ-обработчики
     for handler in get_admin_handler():
