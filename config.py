@@ -13,3 +13,5 @@ class Config:
     WEBHOOK_URL = os.getenv("WEBHOOK_URL")
     DEPLOY_ENV = os.getenv("DEPLOY_ENV", "development")
     PORT = int(os.getenv("PORT", 10000))
+    DEPLOY_ENV = os.getenv("DEPLOY_ENV", "development")
+    
