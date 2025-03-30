@@ -1,6 +1,9 @@
-# handlers/admin.py
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CallbackQueryHandler
+from telegram.ext import (
+    CommandHandler,  # Импорт добавлен
+    CallbackQueryHandler,
+    ContextTypes
+)
 from config import Config
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -22,6 +25,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_admin_actions(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик действий админа"""
     query = update.callback_query
+    await query.answer()
     action = query.data
     
     if action == "add_schedule":
