@@ -8,9 +8,9 @@ from telegram.ext import (
     ContextTypes
 )
 from config import Config
-from handlers.categories import handle_categories, show_packages
+from handlers.categories import handle_categories, show_packages  # Используем актуальное имя
 from handlers.back import back_handler
-from handlers.callbacks import setup_callbacks_handler  # Исправлено
+from handlers.callbacks import setup_callbacks_handler
 from handlers.admin import get_admin_handler
 
 logging.basicConfig(
@@ -40,9 +40,9 @@ def main():
     application = Application.builder().token(Config.TELEGRAM_TOKEN).post_init(post_init).build()
     
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(setup_callbacks_handler())  # Исправлено
+    application.add_handler(setup_callbacks_handler())
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
-    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
+    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))  # Исправлено
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
     
     for handler in get_admin_handler():
