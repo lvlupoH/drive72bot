@@ -11,4 +11,4 @@ class Config:
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
     ADMINS = [int(os.getenv("ADMIN_ID"))]
     PORT = int(os.getenv("PORT", 10000))
-    WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL", "https://drive72-bot.onrender.com")
