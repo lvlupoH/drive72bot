@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -8,6 +8,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
     ContextTypes,
+    ConversationHandler
 )
 from config import Config
 from handlers import (
@@ -15,8 +16,8 @@ from handlers import (
     callbacks,
     gallery,
     instructors,
-    admin,
-    profile
+    profile,
+    admin
 )
 
 # Настройка логгирования
@@ -26,81 +27,100 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-async def post_init(application):
-    """Инициализация после запуска"""
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /start с главным меню"""
+    keyboard = [
+        [InlineKeyboardButton("Категории", callback_data="categories")],
+        [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
+        [InlineKeyboardButton("Галерея", callback_data="gallery")],
+        [InlineKeyboardButton("Инструкторы", callback_data="instructors")],
+        [InlineKeyboardButton("Личный кабинет", callback_data="profile")]
+    ]
+    await update.message.reply_text(
+        "🚗 Добро пожаловать в автошколу Drive!\nВыберите действие:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def post_init(application: Application):
+    """Пост-инициализация для вебхука"""
     await asyncio.sleep(2)
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start"""
-    keyboard = [
-        [{"text": "Категории", "callback_data": "categories"}],
-        [{"text": "Обратный звонок", "callback_data": "callback_request"}],
-        [{"text": "Галерея", "callback_data": "gallery"}],
-        [{"text": "Инструктора", "callback_data": "instructors"}],
-        [{"text": "Личный кабинет", "callback_data": "profile"}]
-    ]
-    await update.message.reply_text(
-        "Добро пожаловать в автошколу Drive!",
-        reply_markup={"inline_keyboard": keyboard}
-    )
-
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик ошибок"""
-    logger.error("Ошибка: %s", context.error, exc_info=True)
+    """Глобальный обработчик ошибок"""
+    logger.error(msg="Ошибка в обработчике:", exc_info=context.error)
 
 def main():
     config = Config()
     
+    # Создание приложения
     application = Application.builder() \
         .token(config.TELEGRAM_TOKEN) \
         .post_init(post_init) \
         .build()
 
-    # Регистрация обработчиков
+    # ================== Регистрация обработчиков ================== #
+
+    # 1. Команда /start
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("admin", admin.admin_panel))
-    
-    # Категории
+
+    # 2. Обработка категорий
     application.add_handler(CallbackQueryHandler(
-        categories.show_categories, 
+        categories.handle_categories,
         pattern="^categories$"
     ))
-    
-    # Обратный звонок
     application.add_handler(CallbackQueryHandler(
-        callbacks.start_callback_request,
-        pattern="^callback_request$"
+        categories.show_packages,
+        pattern="^(cat_a|cat_b)$"
     ))
-    
-    # Галерея
+
+    # 3. Обратный звонок (ConversationHandler)
+    application.add_handler(callbacks.get_callback_handler())
+
+    # 4. Галерея
     application.add_handler(CallbackQueryHandler(
         gallery.show_gallery,
         pattern="^gallery$"
     ))
-    
-    # Инструкторы
+
+    # 5. Инструкторы
     application.add_handler(CallbackQueryHandler(
         instructors.show_instructors,
         pattern="^instructors$"
     ))
-    
-    # Личный кабинет
+
+    # 6. Личный кабинет
     application.add_handler(CallbackQueryHandler(
         profile.show_profile,
         pattern="^profile$"
     ))
-    
-    # Ошибки
+
+    # 7. Админ-панель
+    application.add_handler(CommandHandler("admin", admin.admin_panel))
+    application.add_handler(CallbackQueryHandler(
+        admin.handle_admin_actions,
+        pattern="^admin_.+"
+    ))
+
+    # 8. Кнопка "Назад"
+    application.add_handler(CallbackQueryHandler(
+        categories.handle_back,
+        pattern="^back_"
+    ))
+
+    # 9. Обработка ошибок
     application.add_error_handler(error_handler)
 
-    # Запуск
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=config.PORT,
-        webhook_url=config.WEBHOOK_URL,
-        secret_token="WEBHOOK_SECRET"
-    )
+    # ================== Запуск приложения ================== #
+    if config.ENV == "production":
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=config.PORT,
+            webhook_url=config.WEBHOOK_URL,
+            secret_token="WEBHOOK_SECRET"
+        )
+    else:
+        application.run_polling()
 
 if __name__ == "__main__":
     main()
