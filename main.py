@@ -1,61 +1,66 @@
-import logging
-import asyncio
-from telegram import Update
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    CallbackQueryHandler,
-    ContextTypes
-)
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from config import Config
-from handlers.categories import handle_categories, show_packages
-from handlers.back import back_handler
-from handlers.callbacks import get_callback_handler
-from handlers.admin import get_admin_handler
+from handlers import (
+    handle_categories,
+    show_moto_packages,
+    show_auto_packages,
+    show_package_details,
+    handle_back,
+    get_callback_conversation_handler,
+    show_gallery,
+    show_instructors,
+    admin_panel
+)
+import logging
 
+# Настройка логгирования
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update, context):
     keyboard = [
-        [{"text": "Категории", "callback_data": "categories"}],
-        [{"text": "Обратный звонок", "callback_data": "callback_request"}],
-        [{"text": "Галерея", "callback_data": "gallery"}],
-        [{"text": "Инструктора", "callback_data": "instructors"}],
-        [{"text": "Личный кабинет", "callback_data": "profile"}]
+        [InlineKeyboardButton("Категории", callback_data="categories")],
+        [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
+        [InlineKeyboardButton("Галерея", callback_data="gallery")],
+        [InlineKeyboardButton("Инструктора", callback_data="instructors")],
+        [InlineKeyboardButton("Личный кабинет", callback_data="personal_cabinet")]
     ]
     await update.message.reply_text(
         "Добро пожаловать в автошколу Drive!",
-        reply_markup={"inline_keyboard": keyboard}
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def post_init(application):
-    await asyncio.sleep(5)
-    await application.bot.set_webhook(Config.WEBHOOK_URL)
+async def error_handler(update, context):
+    logger.error(msg="Ошибка в обработчике:", exc_info=context.error)
 
 def main():
     config = Config()
-    application = Application.builder().token(config.TELEGRAM_TOKEN).post_init(post_init).build()
+    application = Application.builder().token(config.TELEGRAM_TOKEN).build()
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(get_callback_handler())
+    application.add_handler(get_callback_conversation_handler())
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
-    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
-    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
+    application.add_handler(CallbackQueryHandler(show_moto_packages, pattern="^cat_moto$"))
+    application.add_handler(CallbackQueryHandler(show_auto_packages, pattern="^cat_auto$"))
+    application.add_handler(CallbackQueryHandler(show_package_details, pattern="^package_"))
+    application.add_handler(CallbackQueryHandler(handle_back, pattern="^back_"))
+    application.add_error_handler(error_handler)
     
-    # Админ-панель
-    for handler in get_admin_handler():
-        application.add_handler(handler)
-    
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=config.PORT,
-        webhook_url=config.WEBHOOK_URL
-    )
+    # Настройка вебхука
+    if config.DEPLOY_ENV == "production":
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=config.PORT,
+            webhook_url=config.WEBHOOK_URL,
+            drop_pending_updates=True  # Важно для избежания конфликтов
+        )
+    else:
+        application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
