@@ -22,6 +22,7 @@ from handlers import (
 
 # main.py
 from handlers.callbacks import get_callback_handler  # Явный импорт
+from handlers import get_admin_handler  # Добавьте в импорты
 
 # Настройка логгирования
 logging.basicConfig(
@@ -55,7 +56,8 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     config = Config()
-    
+    for handler in get_admin_handler():
+        application.add_handler(handler)
     # Создание приложения
     application = Application.builder() \
         .token(config.TELEGRAM_TOKEN) \
