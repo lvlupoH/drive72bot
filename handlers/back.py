@@ -48,3 +48,4 @@ async def back_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Главное меню:",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
