@@ -12,7 +12,6 @@ import smtplib
 from email.mime.text import MIMEText
 import logging
 from datetime import datetime
-from email.utils import formatdate
 
 # Состояния диалога
 NAME, PHONE, QUESTION = range(3)
@@ -23,7 +22,7 @@ async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     await update.callback_query.message.reply_text(
         "📞 Запрос обратного звонка\n\n"
-        "Пожалуйста, введите ваше имя:",
+        "Пожалуйста, введите ваше ФИО:",
         reply_markup=ReplyKeyboardRemove()
     )
     return NAME
@@ -31,76 +30,56 @@ async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Сохраняем имя и запрашиваем телефон"""
     context.user_data['name'] = update.message.text
-    await update.message.reply_text(
-        "Теперь введите ваш номер телефона в формате +7XXX XXX XX XX:",
-        reply_markup=ReplyKeyboardRemove()
-    )
+    await update.message.reply_text("Теперь введите ваш номер телефона:")
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Сохраняем телефон и запрашиваем вопрос"""
     context.user_data['phone'] = update.message.text
-    await update.message.reply_text(
-        "Кратко опишите ваш вопрос или проблему:",
-        reply_markup=ReplyKeyboardRemove()
-    )
+    await update.message.reply_text("Кратко опишите ваш вопрос:")
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Финализация запроса и отправка email"""
-    context.user_data['question'] = update.message.text
-    user_data = context.user_data
-
+    """Отправка email с данными"""
+    question = update.message.text
     try:
-        # Формируем письмо
-        message = MIMEText(
-            f"Новый запрос обратного звонка:\n\n"
-            f"Имя: {user_data['name']}\n"
-            f"Телефон: {user_data['phone']}\n"
-            f"Вопрос: {user_data['question']}\n\n"
-            f"Дата: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        await send_callback_email(
+            context.user_data['name'],
+            context.user_data['phone'],
+            question
         )
-        message['Subject'] = f'📞 Запрос звонка от {user_data["name"]}'
-        message['From'] = Config.EMAIL_USER
-        message['To'] = Config.ADMIN_EMAIL
-        message['Date'] = formatdate(localtime=True)
-
-        # Отправка через SMTP с SSL
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
-            server.sendmail(
-                Config.EMAIL_USER, 
-                Config.ADMIN_EMAIL, 
-                message.as_string()
-            )
-            logger.info("Письмо успешно отправлено на %s", Config.ADMIN_EMAIL)
-
-        await update.message.reply_text(
-            "✅ Ваш запрос успешно отправлен! Мы свяжемся с вами в ближайшее время.",
-            reply_markup=ReplyKeyboardRemove()
-        )
-
+        await update.message.reply_text("✅ Запрос успешно отправлен!")
     except Exception as e:
         logger.error(f"Ошибка отправки: {str(e)}")
-        await update.message.reply_text(
-            "❌ Произошла ошибка при отправке. Попробуйте позже."
-        )
+        await update.message.reply_text("❌ Ошибка при отправке")
 
     context.user_data.clear()
     return ConversationHandler.END
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена диалога"""
-    await update.message.reply_text(
-        "❌ Запрос отменен",
-        reply_markup=ReplyKeyboardRemove()
-    )
-    context.user_data.clear()
-    return ConversationHandler.END
+async def send_callback_email(name: str, phone: str, question: str):
+    """Отправка через SMTP"""
+    body = f"""
+    Новый запрос звонка:
+    ФИО: {name}
+    Телефон: {phone}
+    Вопрос: {question}
+    Время: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    """
+    
+    msg = MIMEText(body.strip())
+    msg['Subject'] = f'📞 Запрос от {name}'
+    msg['From'] = Config.EMAIL_USER
+    msg['To'] = Config.ADMIN_EMAIL
+
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
+        server.send_message(msg)
 
 def setup_callbacks_handler() -> ConversationHandler:
     return ConversationHandler(
-        entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
+        entry_points=[
+            CallbackQueryHandler(start_callback, pattern="^callback_request$")
+        ],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
@@ -110,5 +89,11 @@ def setup_callbacks_handler() -> ConversationHandler:
             CommandHandler('cancel', cancel),
             MessageHandler(filters.Regex(r'^Отмена$'), cancel)
         ],
+        per_message=True,
         allow_reentry=True
     )
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❌ Отменено")
+    context.user_data.clear()
+    return ConversationHandler.END
