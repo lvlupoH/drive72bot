@@ -13,6 +13,7 @@ from handlers.back import back_handler
 from handlers.callbacks import setup_callbacks_handler
 from handlers.requests import setup_requests_handler
 from handlers.admin import get_admin_handler
+from handlers.instructors import show_instructors, show_instructor_details
 
 # Настройка логгирования
 logging.basicConfig(
@@ -22,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start с обновленным меню"""
+    """Обработчик команды /start"""
     keyboard = [
         [{"text": "Категории", "callback_data": "categories"}],
         [{"text": "Обратный звонок", "callback_data": "callback_request"}],
@@ -43,12 +44,9 @@ async def post_init(application):
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    """Основная функция инициализации бота"""
-    application = Application.builder() \
-        .token(Config.TELEGRAM_TOKEN) \
-        .post_init(post_init) \
-        .build()
-
+    """Основная функция запуска бота"""
+    application = Application.builder().token(Config.TELEGRAM_TOKEN).post_init(post_init).build()
+    
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(setup_callbacks_handler())
@@ -56,17 +54,19 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
-
+    application.add_handler(CallbackQueryHandler(show_instructors, pattern="^instructors$"))
+    application.add_handler(CallbackQueryHandler(show_instructor_details, pattern="^instructor_"))
+    
     # Админские обработчики
     for handler in get_admin_handler():
         application.add_handler(handler)
-
+    
     # Запуск вебхука
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
         webhook_url=Config.WEBHOOK_URL,
-        secret_token='YOUR_SECRET_TOKEN'
+        secret_token=Config.WEBHOOK_SECRET
     )
 
 if __name__ == "__main__":
