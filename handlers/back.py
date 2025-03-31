@@ -20,3 +20,8 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     elif query.data == "back_categories":
         await handle_categories(update, context)
+        
+    elif query.data == "instructors":
+        await show_instructors(update, context)
+        
+        
