@@ -15,7 +15,7 @@ from handlers.requests import setup_requests_handler
 from handlers.admin import get_admin_handler
 from handlers.instructors import show_instructors, show_instructor_details
 
-# Настройка логгирования
+# Настройка логгера
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
@@ -23,7 +23,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start"""
     keyboard = [
         [{"text": "Категории", "callback_data": "categories"}],
         [{"text": "Обратный звонок", "callback_data": "callback_request"}],
@@ -34,45 +33,44 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [{"text": "Личный кабинет", "callback_data": "profile"}]
     ]
     await update.message.reply_text(
-        "🚗 Добро пожаловать в автошколу Drive!",
+        "Добро пожаловать в автошколу Drive!",
         reply_markup={"inline_keyboard": keyboard}
     )
 
 async def post_init(application):
-    """Пост-инициализация для webhook"""
     await asyncio.sleep(5)
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
-def main():
-    """Основная функция запуска бота"""
-    application = Application.builder() \
-        .token(Config.TELEGRAM_TOKEN) \
-        .post_init(post_init) \
-        .build()
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    """Глобальный обработчик ошибок"""
+    logger.error("Exception while handling update:", exc_info=context.error)
+    
+    if update and hasattr(update, 'callback_query'):
+        try:
+            await update.callback_query.answer("⚠️ Произошла ошибка. Попробуйте позже.")
+        except Exception as e:
+            logger.error(f"Error handling callback: {str(e)}")
 
+def main():
+    application = Application.builder().token(Config.TELEGRAM_TOKEN).post_init(post_init).build()
+    
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
-    
-    # Обработчики категорий
-    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
-    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
-    
-    # Обработчики запросов
     application.add_handler(setup_callbacks_handler())
     application.add_handler(setup_requests_handler())
-    
-    # Обработчики инструкторов
+    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
+    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
+    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
     application.add_handler(CallbackQueryHandler(show_instructors, pattern="^instructors$"))
     application.add_handler(CallbackQueryHandler(show_instructor_details, pattern="^instructor_"))
-    
-    # Навигация
-    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
     
     # Админ-панель
     for handler in get_admin_handler():
         application.add_handler(handler)
-
-    # Запуск webhook
+    
+    # Обработчик ошибок
+    application.add_error_handler(error_handler)
+    
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
