@@ -1,4 +1,3 @@
-# handlers/requests.py
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import (
     ContextTypes,
@@ -14,64 +13,54 @@ from email.mime.text import MIMEText
 from datetime import datetime
 import logging
 
-# Состояния для разных запросов
+# Состояния для запросов
 EXTRA_NAME, EXTRA_PHONE = range(2)
 RETAKE_NAME, RETAKE_PHONE = range(2,4)
-
 logger = logging.getLogger(__name__)
 
 async def start_extra_lessons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     await update.callback_query.message.reply_text(
-        "📚 Запрос на дополнительные занятия\n\nПожалуйста, введите ваше ФИО:",
+        "📚 Введите ваше ФИО для записи:",
         reply_markup=ReplyKeyboardRemove()
     )
     return EXTRA_NAME
 
 async def get_extra_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['extra_name'] = update.message.text
-    await update.message.reply_text("Теперь введите ваш номер телефона:")
+    await update.message.reply_text("📱 Введите номер телефона:")
     return EXTRA_PHONE
 
 async def get_extra_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phone = update.message.text
-    await send_request_email(
-        "Дополнительные занятия",
-        context.user_data['extra_name'],
-        phone
-    )
-    await update.message.reply_text("✅ Заявка принята! С вами свяжутся для уточнения деталей.")
+    await send_request_email("Доп. занятия", context.user_data['extra_name'], phone)
+    await update.message.reply_text("✅ Заявка принята!")
     context.user_data.clear()
     return ConversationHandler.END
 
 async def start_retake(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
     await update.callback_query.message.reply_text(
-        "🔄 Запрос на пересдачу экзамена\n\nПожалуйста, введите ваше ФИО:",
+        "🔄 Введите ФИО для пересдачи:",
         reply_markup=ReplyKeyboardRemove()
     )
     return RETAKE_NAME
 
 async def get_retake_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['retake_name'] = update.message.text
-    await update.message.reply_text("Теперь введите ваш номер телефона:")
+    await update.message.reply_text("📱 Введите номер телефона:")
     return RETAKE_PHONE
 
 async def get_retake_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     phone = update.message.text
-    await send_request_email(
-        "Пересдача экзамена", 
-        context.user_data['retake_name'],
-        phone
-    )
-    await update.message.reply_text("✅ Заявка принята! Администратор свяжется с вами.")
+    await send_request_email("Пересдача", context.user_data['retake_name'], phone)
+    await update.message.reply_text("✅ Заявка принята!")
     context.user_data.clear()
     return ConversationHandler.END
 
 async def send_request_email(request_type: str, name: str, phone: str):
     body = f"""
-    Новый запрос: {request_type}
-    
+    Тип запроса: {request_type}
     ФИО: {name}
     Телефон: {phone}
     Дата: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
@@ -102,10 +91,11 @@ def setup_requests_handler() -> ConversationHandler:
             CommandHandler('cancel', cancel),
             MessageHandler(filters.Regex(r'^Отмена$'), cancel)
         ],
+        per_message=True,
         allow_reentry=True
     )
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Запрос отменен")
+    await update.message.reply_text("❌ Действие отменено")
     context.user_data.clear()
     return ConversationHandler.END
