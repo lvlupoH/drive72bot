@@ -1,38 +1,61 @@
+# handlers/instructors.py
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CallbackQueryHandler
+from telegram.ext import ContextTypes
+
+INSTRUCTORS = {
+    "ivanov": {
+        "name": "Иванов Алексей",
+        "bio": "Опыт работы: 10 лет\nКатегории: A, B\nАвто: Volkswagen Golf",
+        "phone": "+79123456789",
+        "telegram": "https://t.me/ivanov_drive",
+        "whatsapp": "https://wa.me/79123456789"
+    },
+    "petrova": {
+        "name": "Петрова Мария", 
+        "bio": "Опыт работы: 7 лет\nКатегории: A1, B\nАвто: Hyundai Solaris",
+        "phone": "+79876543210",
+        "telegram": "https://t.me/petrova_drive",
+        "whatsapp": "https://wa.me/79876543210"
+    }
+}
 
 async def show_instructors(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    instructors = [
-        {
-            "name": "Иван Петров",
-            "category": "A, A1",
-            "phone": "+7 912 345-67-89",
-            "tg_id": "@ivan_petrov"
-        },
-        {
-            "name": "Мария Сидорова",
-            "category": "B",
-            "phone": "+7 987 654-32-10",
-            "tg_id": "@maria_sid"
-        }
+    keyboard = [
+        [InlineKeyboardButton("Иванов Алексей", callback_data="instructor_ivanov")],
+        [InlineKeyboardButton("Петрова Мария", callback_data="instructor_petrova")],
+        [InlineKeyboardButton("◀️ Назад", callback_data="back_main")]
     ]
     
-    response = "🏍️ Наши инструкторы:\n\n"
-    for instructor in instructors:
-        response += (
-            f"▪️ {instructor['name']}\n"
-            f"Категория: {instructor['category']}\n"
-            f"Телефон: {instructor['phone']}\n"
-            f"Telegram: {instructor['tg_id']}\n\n"
-        )
-    
-    keyboard = [[InlineKeyboardButton("Назад", callback_data="back_main")]]
-    
-    # Исправленная строка с закрывающей скобкой
     await query.edit_message_text(
-        text=response,
+        text="🏫 Наши инструкторы:\nВыберите инструктора:",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def show_instructor_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    instructor_id = query.data.split("_")[1]
+    instructor = INSTRUCTORS[instructor_id]
+    
+    text = (
+        f"👤 <b>{instructor['name']}</b>\n\n"
+        f"📝 О себе:\n{instructor['bio']}\n\n"
+        f"📱 Контакты:\n{instructor['phone']}"
+    )
+    
+    keyboard = [
+        [
+            InlineKeyboardButton("📲 Telegram", url=instructor['telegram']),
+            InlineKeyboardButton("💬 WhatsApp", url=instructor['whatsapp'])
+        ],
+        [InlineKeyboardButton("◀️ Назад", callback_data="instructors")]
+    ]
+    
+    await query.edit_message_text(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="HTML"
     )
