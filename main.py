@@ -11,9 +11,10 @@ from config import Config
 from handlers.categories import handle_categories, show_packages
 from handlers.back import back_handler
 from handlers.callbacks import setup_callbacks_handler
+from handlers.requests import setup_requests_handler
 from handlers.admin import get_admin_handler
 
-# Настройка логгера
+# Настройка логгирования
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
@@ -21,16 +22,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start"""
+    """Обработчик команды /start с обновленным меню"""
     keyboard = [
-        [{"text": "🏍 Категории", "callback_data": "categories"}],
-        [{"text": "📞 Обратный звонок", "callback_data": "callback_request"}],
-        [{"text": "📷 Галерея", "callback_data": "gallery"}],
-        [{"text": "👤 Личный кабинет", "callback_data": "profile"}]
+        [{"text": "Категории", "callback_data": "categories"}],
+        [{"text": "Обратный звонок", "callback_data": "callback_request"}],
+        [{"text": "Дополнительные занятия", "callback_data": "extra_lessons"}],
+        [{"text": "Пересдача", "callback_data": "retake_exam"}],
+        [{"text": "Галерея", "callback_data": "gallery"}],
+        [{"text": "Инструктора", "callback_data": "instructors"}],
+        [{"text": "Личный кабинет", "callback_data": "profile"}]
     ]
     await update.message.reply_text(
-        "🚗 Добро пожаловать в автошколу Drive!\n\n"
-        "Выберите нужный раздел:",
+        "🚗 Добро пожаловать в автошколу Drive!",
         reply_markup={"inline_keyboard": keyboard}
     )
 
@@ -40,7 +43,7 @@ async def post_init(application):
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    """Основная логика приложения"""
+    """Основная функция инициализации бота"""
     application = Application.builder() \
         .token(Config.TELEGRAM_TOKEN) \
         .post_init(post_init) \
@@ -49,11 +52,12 @@ def main():
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(setup_callbacks_handler())
+    application.add_handler(setup_requests_handler())
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
 
-    # Админ-обработчики
+    # Админские обработчики
     for handler in get_admin_handler():
         application.add_handler(handler)
 
@@ -62,7 +66,7 @@ def main():
         listen="0.0.0.0",
         port=Config.PORT,
         webhook_url=Config.WEBHOOK_URL,
-        allowed_updates=Update.ALL_TYPES
+        secret_token='YOUR_SECRET_TOKEN'
     )
 
 if __name__ == "__main__":
