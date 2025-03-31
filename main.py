@@ -56,6 +56,7 @@ def main():
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
     application.add_handler(CallbackQueryHandler(show_instructors, pattern="^instructors$"))
     application.add_handler(CallbackQueryHandler(show_instructor_details, pattern="^instructor_"))
+    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_|instructors$"))
     
     # Админские обработчики
     for handler in get_admin_handler():
