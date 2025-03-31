@@ -12,8 +12,8 @@ from handlers.categories import handle_categories, show_packages
 from handlers.back import back_handler
 from handlers.callbacks import setup_callbacks_handler
 from handlers.requests import setup_requests_handler
-from handlers.admin import get_admin_handler
 from handlers.instructors import show_instructors, show_instructor_details
+from handlers.admin import get_admin_handler
 
 # Настройка логгирования
 logging.basicConfig(
@@ -39,14 +39,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def post_init(application):
-    """Пост-инициализация для вебхука"""
+    """Пост-инициализация бота"""
     await asyncio.sleep(5)
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    """Основная функция запуска бота"""
-    application = Application.builder().token(Config.TELEGRAM_TOKEN).post_init(post_init).build()
-    
+    """Основная функция запуска"""
+    application = Application.builder() \
+        .token(Config.TELEGRAM_TOKEN) \
+        .post_init(post_init) \
+        .build()
+
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(setup_callbacks_handler())
@@ -56,18 +59,17 @@ def main():
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
     application.add_handler(CallbackQueryHandler(show_instructors, pattern="^instructors$"))
     application.add_handler(CallbackQueryHandler(show_instructor_details, pattern="^instructor_"))
-    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_|instructors$"))
-    
-    # Админские обработчики
+
+    # Админ-панель
     for handler in get_admin_handler():
         application.add_handler(handler)
-    
+
     # Запуск вебхука
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
         webhook_url=Config.WEBHOOK_URL,
-        secret_token=Config.WEBHOOK_SECRET
+        secret_token=Config.WEBHOOK_SECRET or None  # Исправление для WEBHOOK_SECRET
     )
 
 if __name__ == "__main__":
