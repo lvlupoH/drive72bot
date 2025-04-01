@@ -1,3 +1,4 @@
+# handlers/callbacks.py
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import (
     ContextTypes,
@@ -12,10 +13,14 @@ import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
 import logging
+import re
 
 # Состояния диалога
 NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
+
+# Валидация номера телефона
+PHONE_REGEX = r'^(\+7|8)[0-9]{10}$'
 
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начало диалога обратного звонка"""
@@ -29,7 +34,7 @@ async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Сохраняем имя и запрашиваем телефон"""
+    """Обработка ввода имени"""
     context.user_data['name'] = update.message.text
     await update.message.reply_text(
         "Теперь введите ваш номер телефона в формате +7XXX XXX XX XX:",
@@ -38,8 +43,13 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Сохраняем телефон и запрашиваем вопрос"""
-    context.user_data['phone'] = update.message.text
+    """Обработка ввода телефона с валидацией"""
+    phone = update.message.text.replace(" ", "")
+    if not re.match(PHONE_REGEX, phone):
+        await update.message.reply_text("❌ Неверный формат номера. Попробуйте еще раз:")
+        return PHONE
+    
+    context.user_data['phone'] = phone
     await update.message.reply_text(
         "Кратко опишите ваш вопрос или проблему:",
         reply_markup=ReplyKeyboardRemove()
@@ -47,7 +57,7 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Финализация запроса"""
+    """Финализация запроса и отправка email"""
     context.user_data['question'] = update.message.text
     
     try:
@@ -60,7 +70,7 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Ошибка отправки: {str(e)}")
         await update.message.reply_text("❌ Произошла ошибка при отправке")
-
+    
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -85,11 +95,13 @@ async def send_callback_email(name: str, phone: str, question: str):
         server.send_message(msg)
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Отмена диалога"""
     await update.message.reply_text("❌ Запрос отменен")
     context.user_data.clear()
     return ConversationHandler.END
 
 def setup_callbacks_handler() -> ConversationHandler:
+    """Настройка обработчика обратного звонка"""
     return ConversationHandler(
         entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
         states={
@@ -101,6 +113,6 @@ def setup_callbacks_handler() -> ConversationHandler:
             CommandHandler('cancel', cancel),
             MessageHandler(filters.Regex(r'^Отмена$'), cancel)
         ],
-        per_message=True,  # Исправлено для устранения предупреждений
-        allow_reentry=True
+        per_message=False,
+        conversation_timeout=300
     )
