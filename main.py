@@ -1,42 +1,33 @@
 import logging
 import asyncio
-from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    ContextTypes,
-    MessageHandler,
-    filters
+    ContextTypes
 )
 from config import Config
 from handlers import (
     start,
-    categories,
-    back,
-    callbacks,
-    requests,
-    admin,
-    profile,
-    instructors
+    setup_callbacks_handler,
+    setup_requests_handler,
+    back_handler,
+    get_admin_handler,
+    profile_handler
 )
-from database import init_db
 
-# Настройка логирования
+# Настройка логгера
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-async def post_init(application):
-    """Инициализация после запуска"""
-    await application.bot.set_webhook(Config.WEBHOOK_URL)
+async def post_init(app: Application) -> None:
+    """Инициализация вебхука после запуска"""
+    await app.bot.set_webhook(Config.WEBHOOK_URL)
 
-def main():
-    # Инициализация БД
-    init_db()
-    
+def main() -> None:
     # Создание приложения
     application = Application.builder() \
         .token(Config.TELEGRAM_TOKEN) \
@@ -44,24 +35,14 @@ def main():
         .build()
 
     # Регистрация обработчиков
-    handlers = [
-        CommandHandler("start", start.start),
-        CommandHandler("profile", profile.show_profile),
-        CallbackQueryHandler(back.back_handler, pattern="^back_"),
-        CallbackQueryHandler(categories.handle_categories, pattern="^categories$"),
-        CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"),
-        CallbackQueryHandler(instructors.show_instructors, pattern="^instructors$"),
-        CallbackQueryHandler(instructors.show_instructor_details, pattern="^instructor_"),
-        callbacks.setup_callbacks_handler(),
-        requests.setup_requests_handler(),
-    ]
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(back_handler, pattern=r"^back_"))
+    application.add_handler(setup_callbacks_handler())
+    application.add_handler(setup_requests_handler())
+    application.add_handler(profile_handler())
 
-    # Добавление админ-панели
-    for handler in admin.get_admin_handler():
-        handlers.append(handler)
-
-    # Регистрация всех обработчиков
-    for handler in handlers:
+    # Админ-панель
+    for handler in get_admin_handler():
         application.add_handler(handler)
 
     # Запуск вебхука
