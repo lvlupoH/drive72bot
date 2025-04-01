@@ -1,22 +1,18 @@
-# handlers/profile.py (новый файл)
+# handlers/profile.py
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, CommandHandler
 from database import get_db
 
 async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     try:
         with get_db() as conn:
-            cursor = conn.execute('''
-                SELECT * FROM users 
-                WHERE user_id = ? 
-                ORDER BY id DESC 
-                LIMIT 1
-            ''', (user_id,))
-            data = cursor.fetchone()
-            
+            with conn.cursor() as cur:
+                cur.execute('SELECT * FROM users WHERE user_id = %s', (user_id,))
+                data = cur.fetchone()
+                
         if not data:
-            await update.message.reply_text("❌ Ваша карточка не найдена")
+            await update.message.reply_text("❌ Карточка не найдена")
             return
 
         text = (
@@ -33,5 +29,7 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(text)
         
     except Exception as e:
-        logger.error(f"Profile error: {str(e)}")
         await update.message.reply_text("❌ Ошибка загрузки данных")
+
+def profile_handler():
+    return CommandHandler("profile", show_profile)
