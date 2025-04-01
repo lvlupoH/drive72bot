@@ -101,6 +101,6 @@ def setup_callbacks_handler() -> ConversationHandler:
             CommandHandler('cancel', cancel),
             MessageHandler(filters.Regex(r'^Отмена$'), cancel)
         ],
-        per_message=False,
+        per_message=True,  # Исправлено для устранения предупреждений
         allow_reentry=True
     )
