@@ -1,53 +1,106 @@
 # database.py
-from sqlalchemy import create_engine, Column, Integer, String, Date
-from sqlalchemy.orm import sessionmaker, declarative_base
+import sqlite3
+from contextlib import contextmanager
 from config import Config
+import logging
 
-Base = declarative_base()
+logger = logging.getLogger(__name__)
 
-class User(Base):
-    __tablename__ = 'users'
-    id = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer, unique=True)
-    start_date = Column(Date)
-    end_date = Column(Date)
-    lessons_left = Column(Integer)
+DATABASE_NAME = Config.DATABASE_URL  # Из конфига
 
-# Инициализация подключения к БД
-engine = create_engine(Config.DATABASE_URL)
-Session = sessionmaker(bind=engine)
-Base.metadata.create_all(engine)
-
-async def get_user_data(telegram_id: int):
-    """Получение данных пользователя из БД"""
-    session = Session()
+@contextmanager
+def get_db():
+    """Контекстный менеджер для работы с базой данных"""
+    conn = sqlite3.connect(DATABASE_NAME)
+    conn.row_factory = sqlite3.Row  # Доступ к колонкам по имени
     try:
-        user = session.query(User).filter_by(telegram_id=telegram_id).first()
-        if user:
-            return {
-                "start_date": user.start_date.strftime("%Y-%m-%d"),
-                "end_date": user.end_date.strftime("%Y-%m-%d"),
-                "lessons_left": user.lessons_left
-            }
-        return None
+        yield conn
+    except sqlite3.Error as e:
+        logger.error(f"Database error: {str(e)}")
+        conn.rollback()
+        raise
     finally:
-        session.close()
+        conn.close()
 
-# Добавьте в конец database.py
-def init_test_data():
-    session = Session()
-    try:
-        if not session.query(User).first():
-            test_user = User(
-                telegram_id=249423404,  # Ваш Telegram ID
-                start_date="2025-01-01",
-                end_date="2025-12-31",
-                lessons_left=10
+def init_db():
+    """Инициализация таблиц в базе данных"""
+    with get_db() as conn:
+        try:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL UNIQUE,
+                    category TEXT CHECK(category IN ('A', 'B')) NOT NULL,
+                    group_num TEXT NOT NULL,
+                    full_name TEXT NOT NULL,
+                    period TEXT NOT NULL,
+                    internal_exam TEXT,
+                    state_exam TEXT,
+                    practical_exam TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.commit()
+            logger.info("Database initialized successfully")
+        except sqlite3.Error as e:
+            logger.error(f"Init DB error: {str(e)}")
+            raise
+
+def add_user(user_data: dict):
+    """Добавление пользователя в базу данных"""
+    with get_db() as conn:
+        try:
+            conn.execute('''
+                INSERT INTO users (
+                    user_id, category, group_num,
+                    full_name, period, internal_exam,
+                    state_exam, practical_exam
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                user_data['user_id'],
+                user_data['category'],
+                user_data['group_num'],
+                user_data['full_name'],
+                user_data['period'],
+                user_data.get('internal_exam'),
+                user_data.get('state_exam'),
+                user_data.get('practical_exam')
+            ))
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            logger.warning("User already exists")
+            return False
+        except Exception as e:
+            logger.error(f"Add user error: {str(e)}")
+            return False
+
+def get_user(user_id: int):
+    """Получение данных пользователя"""
+    with get_db() as conn:
+        try:
+            cursor = conn.execute(
+                "SELECT * FROM users WHERE user_id = ?",
+                (user_id,)
             )
-            session.add(test_user)
-            session.commit()
-    finally:
-        session.close()
+            return cursor.fetchone()
+        except Exception as e:
+            logger.error(f"Get user error: {str(e)}")
+            return None
 
-# Вызов функции при первом запуске
-init_test_data()
+def update_user(user_id: int, update_data: dict):
+    """Обновление данных пользователя"""
+    with get_db() as conn:
+        try:
+            set_clause = ", ".join([f"{k}=?" for k in update_data.keys()])
+            values = list(update_data.values()) + [user_id]
+            
+            conn.execute(
+                f"UPDATE users SET {set_clause} WHERE user_id = ?",
+                values
+            )
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Update user error: {str(e)}")
+            return False
