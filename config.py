@@ -1,33 +1,55 @@
-# config.py
 import os
-from dotenv import load_dotenv
 import sys
+from dotenv import load_dotenv
 
+# Загрузка переменных окружения из .env файла
 load_dotenv()
 
 class Config:
+    """Конфигурация приложения с валидацией параметров"""
+    
+    # Обязательные параметры
     TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-    DATABASE_URL = os.getenv("DATABASE_URL")
+    ADMIN_ID = int(os.getenv("ADMIN_ID"))
+    DATABASE_URL = os.getenv("DATABASE_URL", "drive72.db")
     EMAIL_USER = os.getenv("EMAIL_USER")
     EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
-    ADMIN_ID = int(os.getenv("ADMIN_ID"))
-    WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-    WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "")  # Добавлен секретный токен
+    
+    # Опциональные параметры с дефолтами
     PORT = int(os.getenv("PORT", 10000))
     ENV = os.getenv("ENV", "production")
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
 
     @classmethod
     def validate(cls):
-        required = [
-            "TELEGRAM_TOKEN", "DATABASE_URL", "EMAIL_USER",
-            "EMAIL_PASSWORD", "ADMIN_EMAIL", "ADMIN_ID",
-            "WEBHOOK_URL"
+        """Проверка обязательных параметров"""
+        missing = []
+        required_vars = [
+            "TELEGRAM_TOKEN",
+            "ADMIN_ID",
+            "EMAIL_USER",
+            "EMAIL_PASSWORD",
+            "ADMIN_EMAIL"
         ]
-        missing = [var for var in required if not getattr(cls, var)]
-        
+
+        for var in required_vars:
+            if not getattr(cls, var):
+                missing.append(var)
+
         if missing:
-            print(f"Ошибка: Отсутствуют переменные: {', '.join(missing)}")
+            error_msg = (
+                "⛔ Отсутствуют обязательные переменные окружения:\n"
+                f"{', '.join(missing)}\n"
+                "Проверьте .env файл или системные переменные"
+            )
+            print(error_msg)
             sys.exit(1)
 
+        # Дополнительные проверки
+        if cls.ENV not in ("development", "production"):
+            print("❌ Недопустимое значение ENV. Допустимые: development/production")
+            sys.exit(1)
+
+# Проверка конфигурации при импорте
 Config.validate()
