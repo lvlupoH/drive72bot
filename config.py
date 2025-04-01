@@ -2,49 +2,45 @@ import os
 import sys
 from dotenv import load_dotenv
 
-# Загрузка переменных окружения из файла .env
+# Загрузка переменных из .env файла
 load_dotenv()
 
 class Config:
-    """Конфигурационный класс для управления настройками приложения"""
+    """Конфигурация приложения"""
     
-    # Основные настройки
+    # Обязательные параметры
     TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
     ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
     DATABASE_URL = os.getenv("DATABASE_URL")
     
-    # Дополнительные параметры
-    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")  # Уровень логирования
-    WEBHOOK_MODE = os.getenv("WEBHOOK_MODE", "False").lower() == "true"  # Режим вебхука
-    
+    # Опциональные параметры
+    ENV = os.getenv("ENV", "production")       # Режим работы: development/production
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO") # Уровень логирования
+    PORT = int(os.getenv("PORT", 10000))       # Порт для вебхуков
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL", "") # Базовый URL для вебхуков
+
     @classmethod
     def validate(cls):
-        """Проверка обязательных параметров"""
-        errors = []
+        """Проверка обязательных переменных"""
+        missing = []
         
         if not cls.TELEGRAM_TOKEN:
-            errors.append("TELEGRAM_TOKEN не найден в .env")
+            missing.append("TELEGRAM_TOKEN")
             
         if not cls.ADMIN_ID:
-            errors.append("ADMIN_ID не указан")
+            missing.append("ADMIN_ID")
             
         if not cls.DATABASE_URL:
-            errors.append("DATABASE_URL отсутствует")
+            missing.append("DATABASE_URL")
 
-        if errors:
-            print("Критические ошибки конфигурации:")
-            for error in errors:
-                print(f"• {error}")
-            sys.exit(1)
+        if missing:
+            raise ValueError(
+                f"Отсутствуют обязательные переменные: {', '.join(missing)}"
+            )
 
 # Проверка при импорте модуля
-Config.validate()
-
-if __name__ == "__main__":
-    # Тест конфигурации
-    print("Текущие настройки:")
-    print(f"TELEGRAM_TOKEN: {'установлен' if Config.TELEGRAM_TOKEN else 'отсутствует'}")
-    print(f"ADMIN_ID: {Config.ADMIN_ID}")
-    print(f"DATABASE_URL: {Config.DATABASE_URL[:15]}...")
-    print(f"LOG_LEVEL: {Config.LOG_LEVEL}")
-    print(f"WEBHOOK_MODE: {Config.WEBHOOK_MODE}")
+try:
+    Config.validate()
+except ValueError as e:
+    print(f"Ошибка конфигурации: {str(e)}")
+    sys.exit(1)
