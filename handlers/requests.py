@@ -12,8 +12,8 @@ from database import get_db
 import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
-import logging
 import re
+import logging
 
 # Состояния для запросов
 (
@@ -21,12 +21,12 @@ import re
     RETAKE_NAME, RETAKE_PHONE
 ) = range(4)
 
-DATE_REGEX = r'\d{2}\.\d{2}\.\d{4}'
 logger = logging.getLogger(__name__)
+DATE_REGEX = r'\d{2}\.\d{2}\.\d{4}'
 
-# ================== ОБРАБОТКА ДОП. ЗАНЯТИЙ ==================
+# ========== ОБРАБОТЧИКИ ДОПОЛНИТЕЛЬНЫХ ЗАНЯТИЙ ==========
 async def start_extra_lessons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Запуск диалога для записи на дополнительные занятия"""
+    """Начало диалога для записи на доп. занятия"""
     query = update.callback_query
     await query.answer()
     await query.message.reply_text(
@@ -37,33 +37,35 @@ async def start_extra_lessons(update: Update, context: ContextTypes.DEFAULT_TYPE
     return EXTRA_NAME
 
 async def get_extra_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получение ФИО для доп. занятий"""
     context.user_data['extra_name'] = update.message.text
     await update.message.reply_text("📱 Введите ваш номер телефона:")
     return EXTRA_PHONE
 
-async def finish_extra_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Завершение запроса и сохранение в БД"""
-    phone = update.message.text
+async def get_extra_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['extra_phone'] = update.message.text
     
     try:
-        # Отправка email
-        await _send_request_email(
-            "Дополнительные занятия",
-            context.user_data['extra_name'],
-            phone
-        )
-        
         # Сохранение в базу данных
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute('''
-                    INSERT INTO extra_lessons (full_name, phone)
-                    VALUES (%s, %s)
-                ''', (context.user_data['extra_name'], phone))
-                
-        await update.message.reply_text("✅ Заявка принята! С вами свяжутся.")
+                    INSERT INTO requests (type, full_name, phone)
+                    VALUES (%s, %s, %s)
+                ''', (
+                    'extra_lessons',
+                    context.user_data['extra_name'],
+                    context.user_data['extra_phone']
+                ))
         
+        # Отправка email
+        await _send_request_email(
+            "Дополнительные занятия",
+            context.user_data['extra_name'],
+            context.user_data['extra_phone']
+        )
+        
+        await update.message.reply_text("✅ Заявка принята! Мы свяжемся с вами для уточнения деталей.")
+    
     except Exception as e:
         logger.error(f"Ошибка: {str(e)}")
         await update.message.reply_text("❌ Произошла ошибка при обработке запроса")
@@ -71,9 +73,9 @@ async def finish_extra_request(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data.clear()
     return ConversationHandler.END
 
-# ================== ОБРАБОТКА ПЕРЕСДАЧИ ==================
+# ========== ОБРАБОТЧИКИ ПЕРЕСДАЧИ ЭКЗАМЕНА ==========
 async def start_retake(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Запуск диалога для записи на пересдачу"""
+    """Начало диалога для пересдачи экзамена"""
     query = update.callback_query
     await query.answer()
     await query.message.reply_text(
@@ -84,33 +86,35 @@ async def start_retake(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return RETAKE_NAME
 
 async def get_retake_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Получение ФИО для пересдачи"""
     context.user_data['retake_name'] = update.message.text
     await update.message.reply_text("📱 Введите ваш номер телефона:")
     return RETAKE_PHONE
 
-async def finish_retake_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Завершение запроса на пересдачу"""
-    phone = update.message.text
+async def get_retake_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['retake_phone'] = update.message.text
     
     try:
-        # Отправка email
-        await _send_request_email(
-            "Пересдача экзамена",
-            context.user_data['retake_name'],
-            phone
-        )
-        
         # Сохранение в базу данных
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute('''
-                    INSERT INTO retakes (full_name, phone)
-                    VALUES (%s, %s)
-                ''', (context.user_data['retake_name'], phone))
-                
-        await update.message.reply_text("✅ Заявка принята! Администратор свяжется с вами.")
+                    INSERT INTO requests (type, full_name, phone)
+                    VALUES (%s, %s, %s)
+                ''', (
+                    'retake',
+                    context.user_data['retake_name'],
+                    context.user_data['retake_phone']
+                ))
         
+        # Отправка email
+        await _send_request_email(
+            "Пересдача экзамена",
+            context.user_data['retake_name'],
+            context.user_data['retake_phone']
+        )
+        
+        await update.message.reply_text("✅ Заявка принята! Администратор свяжется с вами.")
+    
     except Exception as e:
         logger.error(f"Ошибка: {str(e)}")
         await update.message.reply_text("❌ Произошла ошибка при обработке запроса")
@@ -118,18 +122,18 @@ async def finish_retake_request(update: Update, context: ContextTypes.DEFAULT_TY
     context.user_data.clear()
     return ConversationHandler.END
 
-# ================== ОБЩИЕ ФУНКЦИИ ==================
+# ========== ОБЩИЕ ФУНКЦИИ ==========
 async def _send_request_email(request_type: str, name: str, phone: str):
-    """Отправка уведомления на почту"""
+    """Отправка email администратору"""
     body = f"""
     Новый запрос: {request_type}
     ФИО: {name}
     Телефон: {phone}
-    Время: {datetime.now().strftime("%d.%m.%Y %H:%M")}
+    Время подачи: {datetime.now().strftime('%d.%m.%Y %H:%M')}
     """
     
     msg = MIMEText(body.strip())
-    msg['Subject'] = f'🚨 {request_type} - {name}'
+    msg['Subject'] = f'📨 Новый запрос: {request_type}'
     msg['From'] = Config.EMAIL_USER
     msg['To'] = Config.ADMIN_EMAIL
 
@@ -139,12 +143,12 @@ async def _send_request_email(request_type: str, name: str, phone: str):
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Отмена текущего диалога"""
-    await update.message.reply_text("❌ Запрос отменен")
+    await update.message.reply_text("❌ Действие отменено")
     context.user_data.clear()
     return ConversationHandler.END
 
-def setup_requests_handler() -> ConversationHandler:
-    """Настройка обработчика запросов"""
+def setup_requests_handler():
+    """Настройка обработчика диалогов"""
     return ConversationHandler(
         entry_points=[
             CallbackQueryHandler(start_extra_lessons, pattern="^extra_lessons$"),
@@ -152,14 +156,14 @@ def setup_requests_handler() -> ConversationHandler:
         ],
         states={
             EXTRA_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_extra_name)],
-            EXTRA_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, finish_extra_request)],
+            EXTRA_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_extra_phone)],
             RETAKE_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_retake_name)],
-            RETAKE_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, finish_retake_request)]
+            RETAKE_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_retake_phone)]
         },
         fallbacks=[
             CommandHandler('cancel', cancel),
             MessageHandler(filters.Regex(r'^Отмена$'), cancel)
         ],
-        per_message=True,
-        allow_reentry=True
+        per_message=False,
+        conversation_timeout=300
     )
