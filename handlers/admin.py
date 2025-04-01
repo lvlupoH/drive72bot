@@ -49,7 +49,7 @@ async def check_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await update.message.reply_text(
         "🛠 Админ-панель:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return ConversationHandler.END
 
 async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
