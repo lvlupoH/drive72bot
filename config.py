@@ -1,45 +1,36 @@
 import os
-import sys
 from dotenv import load_dotenv
+import sys
 
-# Загрузка переменных окружения из .env файла
 load_dotenv()
 
 class Config:
-    """Конфигурация приложения с валидацией обязательных параметров"""
-    
-    # Обязательные параметры (должны быть указаны в .env)
     TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-    ADMIN_ID = int(os.getenv("ADMIN_ID", 0))  # ID администратора в Telegram
-    DATABASE_URL = os.getenv("DATABASE_URL")  # URL подключения к PostgreSQL
-    WEBHOOK_URL = os.getenv("WEBHOOK_URL")    # Полный URL вебхука
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    EMAIL_USER = os.getenv("EMAIL_USER")
+    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+    ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL")
     
-    # Опциональные параметры с дефолтными значениями
-    PORT = int(os.getenv("PORT", 10000))      # Порт для вебхука (по умолчанию 10000)
-    ENV = os.getenv("ENV", "production")      # Режим работы: production/development
-    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")# Уровень логирования
+    PORT = int(os.getenv("PORT", 10000))
+    ENV = os.getenv("ENV", "production")
 
     @classmethod
     def validate(cls):
-        """Проверка наличия обязательных переменных окружения"""
         missing = []
+        required_vars = [
+            "TELEGRAM_TOKEN", "DATABASE_URL", 
+            "EMAIL_USER", "EMAIL_PASSWORD",
+            "ADMIN_EMAIL", "ADMIN_ID", "WEBHOOK_URL"
+        ]
         
-        if not cls.TELEGRAM_TOKEN:
-            missing.append("TELEGRAM_TOKEN")
-            
-        if not cls.ADMIN_ID:
-            missing.append("ADMIN_ID (должен быть числовым ID)")
-            
-        if not cls.DATABASE_URL:
-            missing.append("DATABASE_URL")
-            
-        if not cls.WEBHOOK_URL:
-            missing.append("WEBHOOK_URL")
-
+        for var in required_vars:
+            if not getattr(cls, var):
+                missing.append(var)
+        
         if missing:
-            error_msg = "❌ Отсутствуют обязательные переменные в .env:\n" + "\n".join(missing)
-            print(error_msg)
+            print(f"Missing env variables: {', '.join(missing)}")
             sys.exit(1)
 
-# Проверка конфигурации при импорте модуля
 Config.validate()
