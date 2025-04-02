@@ -12,7 +12,6 @@ from handlers.categories import handle_categories, show_packages
 from handlers.back import back_handler
 from handlers.callbacks import setup_callbacks_handler
 from handlers.admin import get_admin_handler
-from handlers.profile import profile_handler  # Импорт обработчика личного кабинета
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -24,8 +23,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [{"text": "Категории", "callback_data": "categories"}],
         [{"text": "Обратный звонок", "callback_data": "callback_request"}],
-        [{"text": "Галерея", "callback_data": "gallery"}],
-        [{"text": "Инструктора", "callback_data": "instructors"}],
         [{"text": "Личный кабинет", "callback_data": "profile"}]
     ]
     await update.message.reply_text(
@@ -42,17 +39,14 @@ def main():
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(setup_callbacks_handler())  # Обработчик обратного звонка
+    application.add_handler(setup_callbacks_handler())
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
-    application.add_handler(CallbackQueryHandler(profile_handler, pattern="^profile$"))  # Личный кабинет
     
     # Админ-панель
-    for handler in get_admin_handler():
-        application.add_handler(handler)
+    application.add_handler(get_admin_handler()[0])
     
-    # Запуск вебхука
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
