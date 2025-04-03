@@ -28,7 +28,7 @@ async def show_admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("Добавить ученика", callback_data="add_student")]]
     await update.message.reply_text(
         "Админ-панель:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return ConversationHandler.END
 
 # ================== Регистрация ученика ==================
