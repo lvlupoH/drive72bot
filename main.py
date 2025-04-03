@@ -1,4 +1,6 @@
+# main.py
 import logging
+import os
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -42,23 +44,30 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 def main():
-    try:
-        application = Application.builder().token(Config.TELEGRAM_TOKEN).build()
-        
-        # Регистрация обработчиков
-        application.add_handler(CommandHandler("start", start))
-        application.add_handler(callbacks.setup_callbacks_handler())
-        application.add_handler(admin.admin_conversation_handler())
-        application.add_handler(profile.profile_handler())
-        application.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
-        application.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
-        application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
-        
-        # Используем polling для отладки
-        application.run_polling(drop_pending_updates=True)
-        
-    except Exception as e:
-        logger.error(f"Ошибка запуска: {str(e)}")
+    application = Application.builder().token(Config.TELEGRAM_TOKEN).build()
+    
+    # Регистрация обработчиков
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(callbacks.setup_callbacks_handler())
+    application.add_handler(admin.admin_conversation_handler())
+    application.add_handler(profile.profile_handler())
+    application.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
+    application.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
+    application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
+    
+    # Выбор режима запуска
+    if Config.ENV == "production":
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=Config.PORT,
+            webhook_url=Config.WEBHOOK_URL,
+            drop_pending_updates=True
+        )
+    else:
+        application.run_polling(
+            drop_pending_updates=True,
+            allowed_updates=Update.ALL_TYPES
+        )
 
 if __name__ == "__main__":
     main()
