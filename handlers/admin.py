@@ -9,8 +9,11 @@ from telegram.ext import (
 from config import Config
 from models import Student, Session
 import re
+import logging
 
+logger = logging.getLogger(__name__)
 ADMIN_PASSWORD = "Drive"
+
 (
     AWAIT_PASSWORD,
     GET_TG_ID,
@@ -64,7 +67,7 @@ async def confirm_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         address = re.search(r"Адрес:\s*(.+)", text)
         
         if len(dates) != 3 or not address:
-            raise ValueError
+            raise ValueError("Некорректный формат данных")
             
         with Session() as session:
             student = Student(
@@ -74,14 +77,15 @@ async def confirm_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 internal_exam=dates[0],
                 state_exam=dates[1],
                 practical_exam=dates[2],
-                address=address.group(1)
+                address=address.group(1).strip()
             )
             session.add(student)
             session.commit()
             
-        await update.message.reply_text("✅ Студент успешно зарегистрирован!")
+        await update.message.reply_text("✅ Студент зарегистрирован!")
         
     except Exception as e:
+        logger.error(f"Ошибка регистрации: {str(e)}")
         await update.message.reply_text("❌ Ошибка формата данных! Повторите ввод:")
         return CONFIRM
         
@@ -98,6 +102,6 @@ def admin_conversation_handler():
             GET_GROUP: [MessageHandler(filters.TEXT, get_group)],
             CONFIRM: [MessageHandler(filters.TEXT, confirm_data)]
         },
-        fallbacks=[CommandHandler("cancel", lambda u,c: ConversationHandler.END)],
+        fallbacks=[CommandHandler("cancel", lambda u, c: ConversationHandler.END)],
         allow_reentry=True
     )
