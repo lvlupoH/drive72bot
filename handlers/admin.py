@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import (
     ContextTypes,
     ConversationHandler,
@@ -7,7 +7,7 @@ from telegram.ext import (
     filters
 )
 from config import Config
-from models import Student, Session
+from models import Student, Session  # Исправленный импорт
 import re
 
 ADMIN_PASSWORD = "Drive"
