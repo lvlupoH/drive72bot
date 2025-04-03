@@ -7,51 +7,49 @@ from telegram.ext import (
     filters
 )
 from config import Config
-from models import Student, Session  # Исправленный импорт
+from models import Student, Session
 import re
 
 ADMIN_PASSWORD = "Drive"
 (
     AWAIT_PASSWORD,
+    GET_TG_ID,
     GET_FULLNAME,
     GET_GROUP,
     GET_EXAMS,
     CONFIRM
-) = range(5)
+) = range(6)
 
 async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != Config.ADMIN_ID:
         return ConversationHandler.END
-        
-    await update.message.reply_text("Введите пароль админа:")
+    await update.message.reply_text("🔑 Введите пароль админа:")
     return AWAIT_PASSWORD
 
 async def auth_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text != ADMIN_PASSWORD:
-        await update.message.reply_text("Неверный пароль!")
+        await update.message.reply_text("❌ Неверный пароль!")
         return ConversationHandler.END
-        
-    context.user_data["admin"] = True
     await update.message.reply_text("Введите Telegram ID студента:")
+    return GET_TG_ID
+
+async def get_tg_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["tg_id"] = update.message.text
+    await update.message.reply_text("Введите ФИО студента:")
     return GET_FULLNAME
 
 async def get_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["tg_id"] = update.message.text
-    await update.message.reply_text("Введите ФИО студента:")
+    context.user_data["fullname"] = update.message.text
+    await update.message.reply_text("Введите номер группы:")
     return GET_GROUP
 
 async def get_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["fullname"] = update.message.text
-    await update.message.reply_text("Введите номер группы:")
-    return GET_EXAMS
-
-async def get_exams(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["group"] = update.message.text
     await update.message.reply_text(
-        "Введите даты экзаменов в формате:\n"
-        "Внутренний: ДД.ММ.ГГГГ\n"
-        "Государственный: ДД.ММ.ГГГГ\n"
-        "Практический: ДД.ММ.ГГГГ\n"
+        "Введите данные в формате:\n"
+        "Внутренний экзамен: ДД.ММ.ГГГГ\n"
+        "Гос. экзамен: ДД.ММ.ГГГГ\n"
+        "Практика: ДД.ММ.ГГГГ\n"
         "Адрес: ул. Примерная, 1"
     )
     return CONFIRM
@@ -73,7 +71,7 @@ async def confirm_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session.add(student)
         session.commit()
     
-    await update.message.reply_text("Студент зарегистрирован!")
+    await update.message.reply_text("✅ Студент зарегистрирован!")
     return ConversationHandler.END
 
 def admin_conversation_handler():
@@ -81,9 +79,9 @@ def admin_conversation_handler():
         entry_points=[CommandHandler("admin", admin_start)],
         states={
             AWAIT_PASSWORD: [MessageHandler(filters.TEXT, auth_admin)],
+            GET_TG_ID: [MessageHandler(filters.TEXT, get_tg_id)],
             GET_FULLNAME: [MessageHandler(filters.TEXT, get_fullname)],
             GET_GROUP: [MessageHandler(filters.TEXT, get_group)],
-            GET_EXAMS: [MessageHandler(filters.TEXT, get_exams)],
             CONFIRM: [MessageHandler(filters.TEXT, confirm_data)]
         },
         fallbacks=[]
