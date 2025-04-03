@@ -9,7 +9,7 @@ class Config:
     DATABASE_URL = os.getenv("DATABASE_URL")
     ADMIN_ID = int(os.getenv("ADMIN_ID"))
     WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-    PORT = int(os.getenv("PORT", 10000))  # Render требует порт 10000
+    PORT = int(os.getenv("PORT", 10000))
 
     @classmethod
     def validate(cls):
@@ -18,7 +18,7 @@ class Config:
             if not getattr(cls, var):
                 missing.append(var)
         if missing:
-            print(f"Missing: {', '.join(missing)}")
+            print(f"Ошибка: Отсутствуют переменные: {', '.join(missing)}")
             sys.exit(1)
 
 Config.validate()
