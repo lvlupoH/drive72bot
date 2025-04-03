@@ -1,35 +1,36 @@
-# handlers/profile.py
-from telegram import Update
-from telegram.ext import ContextTypes, CommandHandler
-from database import get_db
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import (
+    ContextTypes,
+    CallbackQueryHandler,
+    CommandHandler
+)
+from models import Student, Session
+
+async def check_profile(user_id: int):
+    with Session() as session:
+        student = session.query(Student).filter_by(tg_id=user_id).first()
+        return bool(student)
 
 async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    try:
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute('SELECT * FROM users WHERE user_id = %s', (user_id,))
-                data = cur.fetchone()
-                
-        if not data:
-            await update.message.reply_text("❌ Карточка не найдена")
-            return
-
-        text = (
-            "📂 Личный кабинет:\n\n"
-            f"🎓 Категория: {data['category']}\n"
-            f"👥 Группа: {data['group_num']}\n"
-            f"👤 ФИО: {data['full_name']}\n"
-            f"📅 Период обучения: {data['period']}\n"
-            f"📝 Внутренний экзамен: {data['internal_exam']}\n"
-            f"🏛 Гос. экзамен: {data['state_exam']}\n"
-            f"🚗 Практический экзамен: {data['practical_exam']}"
-        )
+    query = update.callback_query
+    user_id = query.from_user.id
+    
+    with Session() as session:
+        student = session.query(Student).filter_by(tg_id=user_id).first()
         
-        await update.message.reply_text(text)
-        
-    except Exception as e:
-        await update.message.reply_text("❌ Ошибка загрузки данных")
+    text = (
+        f"👤 {student.fullname}\n"
+        f"Группа: {student.group}\n"
+        f"Внутренний экзамен: {student.internal_exam}\n"
+        f"Гос. экзамен: {student.state_exam}\n"
+        f"Практика: {student.practical_exam}\n"
+        f"Адрес: {student.address}"
+    )
+    
+    await query.edit_message_text(
+        text=text,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Назад", callback_data="back_main")]])
+    )
 
 def profile_handler():
-    return CommandHandler("profile", show_profile)
+    return CallbackQueryHandler(show_profile, pattern="^profile$")
