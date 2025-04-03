@@ -1,4 +1,3 @@
-# handlers/callbacks.py
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import (
     ContextTypes,
@@ -11,97 +10,63 @@ from telegram.ext import (
 from config import Config
 import smtplib
 from email.mime.text import MIMEText
-from datetime import datetime
 import logging
-import re
+from datetime import datetime
+from models import Session, Student
 
-# Состояния диалога
 NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
 
-# Валидация номера телефона
-PHONE_REGEX = r'^(\+7|8)[0-9]{10}$'
-
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Начало диалога обратного звонка"""
-    query = update.callback_query
-    await query.answer()
-    await query.message.reply_text(
-        "📞 Запрос обратного звонка\n\n"
-        "Пожалуйста, введите ваше ФИО:",
+    await update.callback_query.answer()
+    await update.callback_query.message.reply_text(
+        "📞 Запрос обратного звонка\n\nПожалуйста, введите ваше имя:",
         reply_markup=ReplyKeyboardRemove()
     )
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка ввода имени"""
     context.user_data['name'] = update.message.text
-    await update.message.reply_text(
-        "Теперь введите ваш номер телефона в формате +7XXX XXX XX XX:",
-        reply_markup=ReplyKeyboardRemove()
-    )
+    await update.message.reply_text("Теперь введите ваш номер телефона:")
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка ввода телефона с валидацией"""
-    phone = update.message.text.replace(" ", "")
-    if not re.match(PHONE_REGEX, phone):
-        await update.message.reply_text("❌ Неверный формат номера. Попробуйте еще раз:")
-        return PHONE
-    
-    context.user_data['phone'] = phone
-    await update.message.reply_text(
-        "Кратко опишите ваш вопрос или проблему:",
-        reply_markup=ReplyKeyboardRemove()
-    )
+    context.user_data['phone'] = update.message.text
+    await update.message.reply_text("Кратко опишите ваш вопрос:")
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Финализация запроса и отправка email"""
     context.user_data['question'] = update.message.text
     
     try:
-        await send_callback_email(
-            context.user_data['name'],
-            context.user_data['phone'],
-            context.user_data['question']
+        msg = MIMEText(
+            f"Имя: {context.user_data['name']}\n"
+            f"Телефон: {context.user_data['phone']}\n"
+            f"Вопрос: {context.user_data['question']}\n"
+            f"Дата: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         )
+        msg['Subject'] = 'Новый запрос звонка'
+        msg['From'] = Config.EMAIL_USER
+        msg['To'] = Config.ADMIN_EMAIL
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
+            server.send_message(msg)
+            
         await update.message.reply_text("✅ Ваш запрос успешно отправлен!")
     except Exception as e:
         logger.error(f"Ошибка отправки: {str(e)}")
-        await update.message.reply_text("❌ Произошла ошибка при отправке")
-    
+        await update.message.reply_text("❌ Произошла ошибка!")
+
     context.user_data.clear()
     return ConversationHandler.END
 
-async def send_callback_email(name: str, phone: str, question: str):
-    """Отправка email через SMTP"""
-    body = f"""
-    Новый запрос обратного звонка:
-    
-    ФИО: {name}
-    Телефон: {phone}
-    Вопрос: {question}
-    Дата: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-    """
-    
-    msg = MIMEText(body.strip())
-    msg['Subject'] = f'📞 Запрос звонка от {name}'
-    msg['From'] = Config.EMAIL_USER
-    msg['To'] = Config.ADMIN_EMAIL
-
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-        server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
-        server.send_message(msg)
-
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена диалога"""
     await update.message.reply_text("❌ Запрос отменен")
     context.user_data.clear()
     return ConversationHandler.END
 
 def setup_callbacks_handler() -> ConversationHandler:
-    """Настройка обработчика обратного звонка"""
     return ConversationHandler(
         entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
         states={
@@ -109,10 +74,7 @@ def setup_callbacks_handler() -> ConversationHandler:
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
-        fallbacks=[
-            CommandHandler('cancel', cancel),
-            MessageHandler(filters.Regex(r'^Отмена$'), cancel)
-        ],
-        per_message=False,
-        conversation_timeout=300
+        fallbacks=[CommandHandler('cancel', cancel)],
+        per_message=True,
+        allow_reentry=True
     )
