@@ -1,111 +1,88 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ContextTypes,
-    CommandHandler,
-    ConversationHandler,
-    MessageHandler,
-    filters
-)
+from telegram.ext import ContextTypes, CommandHandler, ConversationHandler, MessageHandler, filters
 from config import Config
 from models import User, Session
-from datetime import datetime
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Состояния диалога
+# Состояния регистрации
 PASSWORD, FIO, GROUP, INTERNAL_EXAM, STATE_EXAM, PRACTICAL_EXAM, ADDRESS, NOTES = range(8)
 
-# --------------------------------------------
-# 1. Аутентификация администратора
-# --------------------------------------------
 async def admin_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🔐 Введите пароль для доступа:")
     return PASSWORD
 
 async def verify_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text.strip() == "Drive":
+    if update.message.text == "Drive":
         await update.message.reply_text("✅ Доступ разрешен!")
-        return await show_admin_panel(update, context)
+        return await admin_panel(update, context)
     else:
         await update.message.reply_text("❌ Неверный пароль!")
         return ConversationHandler.END
 
-# --------------------------------------------
-# 2. Главное меню админ-панели
-# --------------------------------------------
-async def show_admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("➕ Зарегистрировать ученика", callback_data="add_student")]
-    ]
+async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [[InlineKeyboardButton("Добавить ученика", callback_data="add_student")]]
     await update.message.reply_text(
-        "📂 Админ-панель:",
+        "Админ-панель:",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return ConversationHandler.END
 
-# --------------------------------------------
-# 3. Процесс регистрации ученика
-# --------------------------------------------
-async def start_student_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    await query.message.reply_text("👤 Введите ФИО ученика:")
-    return FIO
-
+# Обработчики для регистрации ученика
 async def get_fio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['fio'] = update.message.text
-    await update.message.reply_text("📚 Введите группу ученика:")
+    await update.message.reply_text("Введите группу ученика:")
     return GROUP
 
 async def get_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['group'] = update.message.text
-    await update.message.reply_text("📅 Дата внутреннего экзамена (ДД.ММ.ГГГГ):")
+    await update.message.reply_text("Дата внутреннего экзамена (ГГГГ-ММ-ДД):")
     return INTERNAL_EXAM
 
-def parse_date(date_str: str):
-    try:
-        return datetime.strptime(date_str, "%d.%m.%Y").date()
-    except ValueError:
-        return None
-
 async def get_internal_exam(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    date = parse_date(update.message.text)
-    if not date:
-        await update.message.reply_text("❌ Неверный формат! Пример: 31.12.2024")
+    try:
+        date = datetime.strptime(update.message.text, "%Y-%m-%d")
+        context.user_data['internal_exam'] = date
+        await update.message.reply_text("Дата гос. экзамена (ГГГГ-ММ-ДД):")
+        return STATE_EXAM
+    except ValueError:
+        await update.message.reply_text("❌ Неверный формат даты!")
         return INTERNAL_EXAM
-    context.user_data['internal_exam'] = date
-    await update.message.reply_text("📅 Дата гос. экзамена (ДД.ММ.ГГГГ):")
-    return STATE_EXAM
 
 async def get_state_exam(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    date = parse_date(update.message.text)
-    if not date:
-        await update.message.reply_text("❌ Неверный формат! Пример: 31.12.2024")
+    try:
+        date = datetime.strptime(update.message.text, "%Y-%m-%d")
+        context.user_data['state_exam'] = date
+        await update.message.reply_text("Дата практического экзамена (ГГГГ-ММ-ДД):")
+        return PRACTICAL_EXAM
+    except ValueError:
+        await update.message.reply_text("❌ Неверный формат даты!")
         return STATE_EXAM
-    context.user_data['state_exam'] = date
-    await update.message.reply_text("📅 Дата практического экзамена (ДД.ММ.ГГГГ):")
-    return PRACTICAL_EXAM
 
 async def get_practical_exam(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    date = parse_date(update.message.text)
-    if not date:
-        await update.message.reply_text("❌ Неверный формат! Пример: 31.12.2024")
+    try:
+        date = datetime.strptime(update.message.text, "%Y-%m-%d")
+        context.user_data['practical_exam'] = date
+        await update.message.reply_text("Адрес проведения экзаменов:")
+        return ADDRESS
+    except ValueError:
+        await update.message.reply_text("❌ Неверный формат даты!")
         return PRACTICAL_EXAM
-    context.user_data['practical_exam'] = date
-    await update.message.reply_text("📍 Адрес проведения экзаменов:")
-    return ADDRESS
 
 async def get_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['address'] = update.message.text
-    await update.message.reply_text("📝 Дополнительные заметки:")
+    await update.message.reply_text("Дополнительные заметки:")
     return NOTES
 
 async def get_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['notes'] = update.message.text
-    session = Session()
     
+    # Сохранение в БД
+    session = Session()
     try:
-        new_user = User(
+        user = User(
             full_name=context.user_data['fio'],
             group=context.user_data['group'],
             internal_exam=context.user_data['internal_exam'],
@@ -114,25 +91,18 @@ async def get_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
             exam_address=context.user_data['address'],
             notes=context.user_data['notes']
         )
-        session.add(new_user)
+        session.add(user)
         session.commit()
-        
-        await update.message.reply_text(
-            "✅ Ученик успешно зарегистрирован!\n"
-            "Кнопка 'Личный кабинет' активирована."
-        )
+        await update.message.reply_text("✅ Ученик успешно зарегистрирован!")
     except Exception as e:
-        logger.error(f"Ошибка БД: {str(e)}")
-        await update.message.reply_text("⚠️ Ошибка сохранения данных!")
+        logger.error(f"Ошибка сохранения: {str(e)}")
+        await update.message.reply_text("❌ Ошибка при сохранении!")
     finally:
         session.close()
         context.user_data.clear()
     
     return ConversationHandler.END
 
-# --------------------------------------------
-# 4. Экспорт обработчиков
-# --------------------------------------------
 def get_admin_handler():
     return [ConversationHandler(
         entry_points=[CommandHandler("admin", admin_login)],
@@ -146,9 +116,5 @@ def get_admin_handler():
             ADDRESS: [MessageHandler(filters.TEXT, get_address)],
             NOTES: [MessageHandler(filters.TEXT, get_notes)]
         },
-        fallbacks=[
-            CommandHandler("cancel", lambda u, c: ConversationHandler.END),
-            MessageHandler(filters.Regex(r"^Отмена$"), lambda u, c: ConversationHandler.END)
-        ],
-        allow_reentry=True
+        fallbacks=[CommandHandler('cancel', lambda u, c: ConversationHandler.END)]
     )]
