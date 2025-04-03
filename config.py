@@ -17,9 +17,16 @@ class Config:
 
     @classmethod
     def validate(cls):
-        missing = [var for var in ["TELEGRAM_TOKEN", "DATABASE_URL", "EMAIL_USER",
-                  "EMAIL_PASSWORD", "ADMIN_EMAIL", "ADMIN_ID", "WEBHOOK_URL"] 
-                  if not getattr(cls, var)]
+        missing = [var for var in [
+            "TELEGRAM_TOKEN", 
+            "DATABASE_URL", 
+            "EMAIL_USER",
+            "EMAIL_PASSWORD", 
+            "ADMIN_EMAIL", 
+            "ADMIN_ID", 
+            "WEBHOOK_URL"
+        ] if not getattr(cls, var)]
+        
         if missing:
             print(f"Missing: {', '.join(missing)}")
             sys.exit(1)
