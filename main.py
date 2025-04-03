@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [{"text": "Категории", "callback_data": "categories"}],
-        [{"text": "Обратный звонок", "callback_data": "callback_request"}],
         [{"text": "Личный кабинет", "callback_data": "profile"}]
     ]
     await update.message.reply_text(
@@ -39,13 +38,14 @@ def main():
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(setup_callbacks_handler())
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
+    application.add_handler(setup_callbacks_handler())
     
     # Админ-панель
-    application.add_handler(get_admin_handler()[0])
+    for handler in get_admin_handler():
+        application.add_handler(handler)
     
     application.run_webhook(
         listen="0.0.0.0",
