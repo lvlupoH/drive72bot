@@ -11,7 +11,7 @@ class Student(Base):
     __tablename__ = 'students'
     
     id = Column(Integer, primary_key=True)
-    tg_id = Column(String(50), unique=True)  # Явное объявление колонки
+    tg_id = Column(String(50), unique=True)
     fullname = Column(String(100))
     group = Column(String(50))
     internal_exam = Column(String(20))
@@ -19,6 +19,5 @@ class Student(Base):
     practical_exam = Column(String(20))
     address = Column(String(200))
 
-# Принудительно пересоздаем таблицу при запуске
-Base.metadata.drop_all(engine)
+# Создание таблицы при старте
 Base.metadata.create_all(engine)
