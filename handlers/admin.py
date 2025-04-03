@@ -1,146 +1,90 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ContextTypes, 
-    CommandHandler, 
-    ConversationHandler, 
-    MessageHandler, 
-    filters,
-    CallbackQueryHandler
+    ContextTypes,
+    ConversationHandler,
+    CommandHandler,
+    MessageHandler,
+    filters
 )
 from config import Config
-from models import User, Session
-import logging
-from datetime import datetime
+from models import Student, Session
+import re
 
-logger = logging.getLogger(__name__)
+ADMIN_PASSWORD = "Drive"
+(
+    AWAIT_PASSWORD,
+    GET_FULLNAME,
+    GET_GROUP,
+    GET_EXAMS,
+    CONFIRM
+) = range(5)
 
-# Состояния регистрации
-PASSWORD, FIO, GROUP, INTERNAL_EXAM, STATE_EXAM, PRACTICAL_EXAM, ADDRESS, NOTES = range(8)
-
-# --- Обработчики админ-панели ---
-async def admin_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔐 Введите пароль для доступа:")
-    return PASSWORD
-
-async def verify_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text.strip() == "Drive":
-        await update.message.reply_text("✅ Доступ разрешен!")
-        return await admin_panel(update, context)
-    else:
-        await update.message.reply_text("❌ Неверный пароль!")
+async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != Config.ADMIN_ID:
         return ConversationHandler.END
+        
+    await update.message.reply_text("Введите пароль админа:")
+    return AWAIT_PASSWORD
 
-async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("Добавить ученика", callback_data="add_student")]
-    ]
-    await update.message.reply_text(
-        "Админ-панель:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    return  # Не завершаем ConversationHandler!
+async def auth_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text != ADMIN_PASSWORD:
+        await update.message.reply_text("Неверный пароль!")
+        return ConversationHandler.END
+        
+    context.user_data["admin"] = True
+    await update.message.reply_text("Введите Telegram ID студента:")
+    return GET_FULLNAME
 
-# --- Обработчики регистрации ученика ---
-async def start_add_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    await query.message.reply_text("Введите ФИО ученика:")
-    return FIO
-
-async def get_fio(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['fio'] = update.message.text
-    await update.message.reply_text("Введите группу ученика:")
-    return GROUP
+async def get_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["tg_id"] = update.message.text
+    await update.message.reply_text("Введите ФИО студента:")
+    return GET_GROUP
 
 async def get_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['group'] = update.message.text
-    await update.message.reply_text("Дата внутреннего экзамена (ГГГГ-ММ-ДД):")
-    return INTERNAL_EXAM
+    context.user_data["fullname"] = update.message.text
+    await update.message.reply_text("Введите номер группы:")
+    return GET_EXAMS
 
-async def get_internal_exam(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        date = datetime.strptime(update.message.text, "%Y-%m-%d")
-        context.user_data['internal_exam'] = date
-        await update.message.reply_text("Дата гос. экзамена (ГГГГ-ММ-ДД):")
-        return STATE_EXAM
-    except ValueError:
-        await update.message.reply_text("❌ Неверный формат даты! Пример: 2024-12-31")
-        return INTERNAL_EXAM
+async def get_exams(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["group"] = update.message.text
+    await update.message.reply_text(
+        "Введите даты экзаменов в формате:\n"
+        "Внутренний: ДД.ММ.ГГГГ\n"
+        "Государственный: ДД.ММ.ГГГГ\n"
+        "Практический: ДД.ММ.ГГГГ\n"
+        "Адрес: ул. Примерная, 1"
+    )
+    return CONFIRM
 
-async def get_state_exam(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        date = datetime.strptime(update.message.text, "%Y-%m-%d")
-        context.user_data['state_exam'] = date
-        await update.message.reply_text("Дата практического экзамена (ГГГГ-ММ-ДД):")
-        return PRACTICAL_EXAM
-    except ValueError:
-        await update.message.reply_text("❌ Неверный формат даты! Пример: 2024-12-31")
-        return STATE_EXAM
-
-async def get_practical_exam(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        date = datetime.strptime(update.message.text, "%Y-%m-%d")
-        context.user_data['practical_exam'] = date
-        await update.message.reply_text("Адрес проведения экзаменов:")
-        return ADDRESS
-    except ValueError:
-        await update.message.reply_text("❌ Неверный формат даты! Пример: 2024-12-31")
-        return PRACTICAL_EXAM
-
-async def get_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['address'] = update.message.text
-    await update.message.reply_text("Дополнительные заметки:")
-    return NOTES
-
-async def get_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['notes'] = update.message.text
+async def confirm_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    dates = re.findall(r"\d{2}\.\d{2}\.\d{4}", update.message.text)
+    address = re.search(r"Адрес: (.+)", update.message.text)
     
-    # Сохранение в БД
-    session = Session()
-    try:
-        user = User(
-            full_name=context.user_data['fio'],
-            group=context.user_data['group'],
-            internal_exam=context.user_data['internal_exam'],
-            state_exam=context.user_data['state_exam'],
-            practical_exam=context.user_data['practical_exam'],
-            exam_address=context.user_data['address'],
-            notes=context.user_data['notes']
+    with Session() as session:
+        student = Student(
+            tg_id=context.user_data["tg_id"],
+            fullname=context.user_data["fullname"],
+            group=context.user_data["group"],
+            internal_exam=dates[0],
+            state_exam=dates[1],
+            practical_exam=dates[2],
+            address=address.group(1)
         )
-        session.add(user)
+        session.add(student)
         session.commit()
-        await update.message.reply_text("✅ Ученик успешно зарегистрирован!")
-    except Exception as e:
-        logger.error(f"Ошибка сохранения: {str(e)}")
-        await update.message.reply_text("❌ Ошибка при сохранении!")
-    finally:
-        session.close()
-        context.user_data.clear()
     
+    await update.message.reply_text("Студент зарегистрирован!")
     return ConversationHandler.END
 
-# --- Настройка обработчиков ---
-def get_admin_handler():
-    return [
-        ConversationHandler(
-            entry_points=[CommandHandler("admin", admin_login)],
-            states={
-                PASSWORD: [MessageHandler(filters.TEXT, verify_password)],
-                # Обработка кнопки "Добавить ученика"
-                'add_student': [
-                    CallbackQueryHandler(start_add_student, pattern="^add_student$")
-                ],
-                FIO: [MessageHandler(filters.TEXT, get_fio)],
-                GROUP: [MessageHandler(filters.TEXT, get_group)],
-                INTERNAL_EXAM: [MessageHandler(filters.TEXT, get_internal_exam)],
-                STATE_EXAM: [MessageHandler(filters.TEXT, get_state_exam)],
-                PRACTICAL_EXAM: [MessageHandler(filters.TEXT, get_practical_exam)],
-                ADDRESS: [MessageHandler(filters.TEXT, get_address)],
-                NOTES: [MessageHandler(filters.TEXT, get_notes)]
-            },
-            fallbacks=[CommandHandler('cancel', lambda u, c: ConversationHandler.END)],
-            map_to_parent={  # Для возврата в админ-панель
-                ConversationHandler.END: ConversationHandler.END
-            }
-        )
-    ]
+def admin_conversation_handler():
+    return ConversationHandler(
+        entry_points=[CommandHandler("admin", admin_start)],
+        states={
+            AWAIT_PASSWORD: [MessageHandler(filters.TEXT, auth_admin)],
+            GET_FULLNAME: [MessageHandler(filters.TEXT, get_fullname)],
+            GET_GROUP: [MessageHandler(filters.TEXT, get_group)],
+            GET_EXAMS: [MessageHandler(filters.TEXT, get_exams)],
+            CONFIRM: [MessageHandler(filters.TEXT, confirm_data)]
+        },
+        fallbacks=[]
+    )
