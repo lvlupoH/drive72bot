@@ -4,9 +4,7 @@ from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    ContextTypes,
-    MessageHandler,
-    filters
+    ContextTypes
 )
 from config import Config
 from handlers import (
@@ -24,6 +22,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /start с динамическими кнопками"""
     user_id = update.effective_user.id
     has_profile = await profile.check_profile(user_id)
     
@@ -43,17 +42,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup={"inline_keyboard": buttons}
     )
 
-async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("ℹ️ Используйте /start для перезагрузки меню")
-
-async def post_init(application):
-    await application.bot.set_webhook(Config.WEBHOOK_URL)
-
 def main():
-    application = Application.builder()\
-        .token(Config.TELEGRAM_TOKEN)\
-        .post_init(post_init)\
-        .build()
+    application = Application.builder().token(Config.TELEGRAM_TOKEN).build()
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
@@ -63,14 +53,9 @@ def main():
     application.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
-    application.add_handler(MessageHandler(filters.ALL, unknown_command))
     
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=Config.PORT,
-        webhook_url=Config.WEBHOOK_URL,
-        drop_pending_updates=True
-    )
+    # Используем polling для надежности
+    application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
