@@ -10,11 +10,13 @@ class Config:
     ADMIN_ID = int(os.getenv("ADMIN_ID"))
     WEBHOOK_URL = os.getenv("WEBHOOK_URL")
     PORT = int(os.getenv("PORT", 10000))
+    ENV = os.getenv("ENV", "production")
 
     @classmethod
     def validate(cls):
         missing = []
-        for var in ["TELEGRAM_TOKEN", "DATABASE_URL", "ADMIN_ID", "WEBHOOK_URL"]:
+        required = ["TELEGRAM_TOKEN", "DATABASE_URL", "ADMIN_ID", "WEBHOOK_URL"]
+        for var in required:
             if not getattr(cls, var):
                 missing.append(var)
         if missing:
