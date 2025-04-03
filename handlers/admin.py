@@ -30,10 +30,13 @@ async def auth_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text != ADMIN_PASSWORD:
         await update.message.reply_text("❌ Неверный пароль!")
         return ConversationHandler.END
-    await update.message.reply_text("Введите Telegram ID студента:")
+    await update.message.reply_text("Введите Telegram ID студента (только цифры):")
     return GET_TG_ID
 
 async def get_tg_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message.text.isdigit():
+        await update.message.reply_text("❌ ID должен содержать только цифры!")
+        return GET_TG_ID
     context.user_data["tg_id"] = update.message.text
     await update.message.reply_text("Введите ФИО студента:")
     return GET_FULLNAME
@@ -55,23 +58,34 @@ async def get_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return CONFIRM
 
 async def confirm_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    dates = re.findall(r"\d{2}\.\d{2}\.\d{4}", update.message.text)
-    address = re.search(r"Адрес: (.+)", update.message.text)
-    
-    with Session() as session:
-        student = Student(
-            tg_id=context.user_data["tg_id"],
-            fullname=context.user_data["fullname"],
-            group=context.user_data["group"],
-            internal_exam=dates[0],
-            state_exam=dates[1],
-            practical_exam=dates[2],
-            address=address.group(1)
-        )
-        session.add(student)
-        session.commit()
-    
-    await update.message.reply_text("✅ Студент зарегистрирован!")
+    try:
+        text = update.message.text
+        dates = re.findall(r"\d{2}\.\d{2}\.\d{4}", text)
+        address = re.search(r"Адрес:\s*(.+)", text)
+        
+        if len(dates) != 3 or not address:
+            raise ValueError
+            
+        with Session() as session:
+            student = Student(
+                tg_id=context.user_data["tg_id"],
+                fullname=context.user_data["fullname"],
+                group=context.user_data["group"],
+                internal_exam=dates[0],
+                state_exam=dates[1],
+                practical_exam=dates[2],
+                address=address.group(1)
+            )
+            session.add(student)
+            session.commit()
+            
+        await update.message.reply_text("✅ Студент успешно зарегистрирован!")
+        
+    except Exception as e:
+        await update.message.reply_text("❌ Ошибка формата данных! Повторите ввод:")
+        return CONFIRM
+        
+    context.user_data.clear()
     return ConversationHandler.END
 
 def admin_conversation_handler():
@@ -84,5 +98,6 @@ def admin_conversation_handler():
             GET_GROUP: [MessageHandler(filters.TEXT, get_group)],
             CONFIRM: [MessageHandler(filters.TEXT, confirm_data)]
         },
-        fallbacks=[]
+        fallbacks=[CommandHandler("cancel", lambda u,c: ConversationHandler.END)],
+        allow_reentry=True
     )
