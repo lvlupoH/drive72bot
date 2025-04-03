@@ -7,28 +7,17 @@ load_dotenv()
 class Config:
     TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
     DATABASE_URL = os.getenv("DATABASE_URL")
-    EMAIL_USER = os.getenv("EMAIL_USER")
-    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
-    ADMIN_ID = int(os.getenv("ADMIN_ID"))
-    WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-    PORT = int(os.getenv("PORT", 10000))
-    ENV = os.getenv("ENV", "production")
-
+    ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
+    
     @classmethod
     def validate(cls):
-        missing = [var for var in [
-            "TELEGRAM_TOKEN", 
-            "DATABASE_URL", 
-            "EMAIL_USER",
-            "EMAIL_PASSWORD", 
-            "ADMIN_EMAIL", 
-            "ADMIN_ID", 
-            "WEBHOOK_URL"
-        ] if not getattr(cls, var)]
-        
+        missing = []
+        if not cls.TELEGRAM_TOKEN:
+            missing.append("TELEGRAM_TOKEN")
+        if not cls.DATABASE_URL:
+            missing.append("DATABASE_URL")
         if missing:
-            print(f"Missing: {', '.join(missing)}")
+            print(f"Ошибка: Отсутствуют переменные: {', '.join(missing)}")
             sys.exit(1)
 
 Config.validate()
