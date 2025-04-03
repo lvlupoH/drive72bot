@@ -1,14 +1,10 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import (
-    ContextTypes,
-    CallbackQueryHandler,
-    CommandHandler
-)
+from telegram.ext import ContextTypes, CallbackQueryHandler
 from models import Student, Session
 
 async def check_profile(user_id: int):
     with Session() as session:
-        student = session.query(Student).filter_by(tg_id=user_id).first()
+        student = session.query(Student).filter_by(tg_id=str(user_id)).first()
         return bool(student)
 
 async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -16,7 +12,7 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     
     with Session() as session:
-        student = session.query(Student).filter_by(tg_id=user_id).first()
+        student = session.query(Student).filter_by(tg_id=str(user_id)).first()
         
     text = (
         f"👤 {student.fullname}\n"
