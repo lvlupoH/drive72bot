@@ -1,6 +1,4 @@
-# main.py
 import logging
-import os
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -43,8 +41,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup={"inline_keyboard": buttons}
     )
 
+async def post_init(application):
+    await application.bot.set_webhook(Config.WEBHOOK_URL)
+
 def main():
-    application = Application.builder().token(Config.TELEGRAM_TOKEN).build()
+    application = Application.builder()\
+        .token(Config.TELEGRAM_TOKEN)\
+        .post_init(post_init)\
+        .build()
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
@@ -55,19 +59,13 @@ def main():
     application.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
     
-    # Выбор режима запуска
-    if Config.ENV == "production":
-        application.run_webhook(
-            listen="0.0.0.0",
-            port=Config.PORT,
-            webhook_url=Config.WEBHOOK_URL,
-            drop_pending_updates=True
-        )
-    else:
-        application.run_polling(
-            drop_pending_updates=True,
-            allowed_updates=Update.ALL_TYPES
-        )
+    # ТОЛЬКО WEBHOOK ДЛЯ PRODUCTION
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=Config.PORT,
+        webhook_url=Config.WEBHOOK_URL,
+        drop_pending_updates=True
+    )
 
 if __name__ == "__main__":
     main()
