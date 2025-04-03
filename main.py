@@ -42,18 +42,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 def main():
-    application = Application.builder().token(Config.TELEGRAM_TOKEN).build()
-    
-    # Регистрация обработчиков
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(callbacks.setup_callbacks_handler())
-    application.add_handler(admin.admin_conversation_handler())
-    application.add_handler(profile.profile_handler())
-    application.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
-    application.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
-    application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
-    
-    application.run_polling(drop_pending_updates=True)
+    try:
+        application = Application.builder().token(Config.TELEGRAM_TOKEN).build()
+        
+        # Регистрация обработчиков
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(callbacks.setup_callbacks_handler())
+        application.add_handler(admin.admin_conversation_handler())
+        application.add_handler(profile.profile_handler())
+        application.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
+        application.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
+        application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
+        
+        # Используем polling для отладки
+        application.run_polling(drop_pending_updates=True)
+        
+    except Exception as e:
+        logger.error(f"Ошибка запуска: {str(e)}")
 
 if __name__ == "__main__":
     main()
