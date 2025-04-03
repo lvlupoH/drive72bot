@@ -3,19 +3,20 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from config import Config
 
-Base = declarative_base()
-
-class User(Base):
-    __tablename__ = 'users'
-    id = Column(Integer, primary_key=True)
-    full_name = Column(String)
-    group = Column(String)
-    internal_exam = Column(Date)
-    state_exam = Column(Date)
-    practical_exam = Column(Date)
-    exam_address = Column(String)
-    notes = Column(String)
-
 engine = create_engine(Config.DATABASE_URL)
-Base.metadata.create_all(engine)
+Base = declarative_base()
 Session = sessionmaker(bind=engine)
+
+class Student(Base):
+    __tablename__ = 'students'
+    
+    id = Column(Integer, primary_key=True)
+    tg_id = Column(String(50), unique=True)
+    fullname = Column(String(100))
+    group = Column(String(50))
+    internal_exam = Column(String(20))
+    state_exam = Column(String(20))
+    practical_exam = Column(String(20))
+    address = Column(String(200))
+
+Base.metadata.create_all(engine)
