@@ -22,7 +22,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start с динамическими кнопками"""
     user_id = update.effective_user.id
     has_profile = await profile.check_profile(user_id)
     
@@ -54,7 +53,6 @@ def main():
     application.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
     
-    # Используем polling для надежности
     application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
