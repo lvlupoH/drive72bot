@@ -171,8 +171,7 @@ def admin_conversation_handler():
                 CallbackQueryHandler(select_field_to_edit, pattern="^edit_"),
                 CallbackQueryHandler(handle_back, pattern="^back$")
             ],
-            CONFIRM_EDIT: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_edit)],
-            DELETE_FLOW: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_delete)]
+            # ... остальные состояния ...
         },
         fallbacks=[CommandHandler("cancel", cancel_admin)],
         allow_reentry=True,
