@@ -5,7 +5,7 @@ from models import Student, Session
 async def check_profile(user_id: int):
     with Session() as session:
         student = session.query(Student).filter_by(tg_id=str(user_id)).first()
-        return bool(student)
+        return student is not None
 
 async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
