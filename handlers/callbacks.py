@@ -10,12 +10,11 @@ from telegram.ext import (
 from config import Config
 import smtplib
 from email.mime.text import MIMEText
-import logging
 from datetime import datetime
-from models import Session, Student
+import logging
 
-NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
+NAME, PHONE, QUESTION = range(3)
 
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
