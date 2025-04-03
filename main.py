@@ -9,10 +9,10 @@ from telegram.ext import (
 )
 from config import Config
 from handlers import (
-    categories,
+    admin,
     back,
     callbacks,
-    admin,
+    categories,
     profile
 )
 
@@ -43,12 +43,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def post_init(application):
-    await asyncio.sleep(5)
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    application = Application.builder().token(Config.TELEGRAM_TOKEN).post_init(post_init).build()
+    application = Application.builder()\
+        .token(Config.TELEGRAM_TOKEN)\
+        .post_init(post_init)\
+        .build()
     
+    # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(callbacks.setup_callbacks_handler())
     application.add_handler(admin.admin_conversation_handler())
@@ -60,7 +63,8 @@ def main():
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
-        webhook_url=Config.WEBHOOK_URL
+        webhook_url=Config.WEBHOOK_URL,
+        drop_pending_updates=True
     )
 
 if __name__ == "__main__":
