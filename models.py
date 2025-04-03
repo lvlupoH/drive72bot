@@ -19,5 +19,4 @@ class Student(Base):
     practical_exam = Column(String(20))
     address = Column(String(200))
 
-# Создание таблиц должно быть после объявления всех моделей
 Base.metadata.create_all(engine)
