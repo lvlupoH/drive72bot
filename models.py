@@ -1,3 +1,4 @@
+# models.py
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -19,5 +20,4 @@ class Student(Base):
     practical_exam = Column(String(20))
     address = Column(String(200))
 
-# Создание таблицы при старте
 Base.metadata.create_all(engine)
