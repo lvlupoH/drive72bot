@@ -7,17 +7,18 @@ load_dotenv()
 class Config:
     TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
     DATABASE_URL = os.getenv("DATABASE_URL")
-    ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
-    
+    ADMIN_ID = int(os.getenv("ADMIN_ID"))
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+    PORT = int(os.getenv("PORT", 10000))  # Render требует порт 10000
+
     @classmethod
     def validate(cls):
         missing = []
-        if not cls.TELEGRAM_TOKEN:
-            missing.append("TELEGRAM_TOKEN")
-        if not cls.DATABASE_URL:
-            missing.append("DATABASE_URL")
+        for var in ["TELEGRAM_TOKEN", "DATABASE_URL", "ADMIN_ID", "WEBHOOK_URL"]:
+            if not getattr(cls, var):
+                missing.append(var)
         if missing:
-            print(f"Ошибка: Отсутствуют переменные: {', '.join(missing)}")
+            print(f"Missing: {', '.join(missing)}")
             sys.exit(1)
 
 Config.validate()
