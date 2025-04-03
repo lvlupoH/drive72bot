@@ -28,7 +28,7 @@ class Config:
         ] if not getattr(cls, var)]
         
         if missing:
-            print(f"Ошибка: Отсутствуют переменные: {', '.join(missing)}")
+            print(f"Missing: {', '.join(missing)}")
             sys.exit(1)
 
 Config.validate()
