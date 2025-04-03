@@ -4,7 +4,8 @@ from telegram.ext import (
     ConversationHandler,
     CommandHandler,
     MessageHandler,
-    filters
+    filters,
+    CallbackQueryHandler
 )
 from config import Config
 from models import Student, Session
@@ -18,11 +19,70 @@ ADMIN_PASSWORD = "Drive"
     GET_GROUP,
     GET_EXAMS,
     CONFIRM,
-    DELETE_STUDENT  # Новое состояние
+    DELETE_STUDENT
 ) = range(7)
 
-# ... остальные функции ...
+# ----- Регистрация студента -----
+async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != Config.ADMIN_ID:
+        return ConversationHandler.END
+    await update.message.reply_text("🔑 Введите пароль админа:")
+    return AWAIT_PASSWORD
 
+async def auth_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text != ADMIN_PASSWORD:
+        await update.message.reply_text("❌ Неверный пароль!")
+        return ConversationHandler.END
+    await update.message.reply_text("Введите Telegram ID студента:")
+    return GET_TG_ID
+
+async def get_tg_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["tg_id"] = update.message.text
+    await update.message.reply_text("Введите ФИО студента:")
+    return GET_FULLNAME
+
+async def get_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["fullname"] = update.message.text
+    await update.message.reply_text("Введите номер группы:")
+    return GET_GROUP
+
+async def get_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["group"] = update.message.text
+    await update.message.reply_text(
+        "Введите данные в формате:\n"
+        "Внутренний экзамен: ДД.ММ.ГГГГ\n"
+        "Гос. экзамен: ДД.ММ.ГГГГ\n"
+        "Практика: ДД.ММ.ГГГГ\n"
+        "Адрес: ул. Примерная, 1"
+    )
+    return CONFIRM
+
+async def confirm_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    dates = re.findall(r"\d{2}\.\d{2}\.\d{4}", text)
+    address_match = re.search(r"Адрес:\s*(.+)", text)
+    
+    if len(dates) != 3 or not address_match:
+        await update.message.reply_text("❌ Неверный формат данных!")
+        return ConversationHandler.END
+    
+    with Session() as session:
+        student = Student(
+            tg_id=context.user_data["tg_id"],
+            fullname=context.user_data["fullname"],
+            group=context.user_data["group"],
+            internal_exam=dates[0],
+            state_exam=dates[1],
+            practical_exam=dates[2],
+            address=address_match.group(1).strip()
+        )
+        session.add(student)
+        session.commit()
+    
+    await update.message.reply_text("✅ Студент зарегистрирован!")
+    return ConversationHandler.END
+
+# ----- Удаление студента -----
 async def delete_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != Config.ADMIN_ID:
         return ConversationHandler.END
@@ -31,21 +91,21 @@ async def delete_student_start(update: Update, context: ContextTypes.DEFAULT_TYP
     return DELETE_STUDENT
 
 async def delete_student_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["delete_tg_id"] = update.message.text
+    tg_id = update.message.text
+    context.user_data["delete_tg_id"] = tg_id
     
     with Session() as session:
-        student = session.query(Student).filter_by(tg_id=context.user_data["delete_tg_id"]).first()
+        student = session.query(Student).filter_by(tg_id=tg_id).first()
         if not student:
             await update.message.reply_text("❌ Студент не найден!")
             return ConversationHandler.END
-            
-    keyboard = [
-        [InlineKeyboardButton("Да", callback_data="confirm_delete")],
-        [InlineKeyboardButton("Нет", callback_data="cancel_delete")]
-    ]
     
+    keyboard = [
+        [InlineKeyboardButton("✅ Подтвердить", callback_data="delete_confirm")],
+        [InlineKeyboardButton("❌ Отмена", callback_data="delete_cancel")]
+    ]
     await update.message.reply_text(
-        f"Удалить студента с ID {context.user_data['delete_tg_id']}?",
+        f"Удалить студента с ID: {tg_id}?",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return ConversationHandler.END
@@ -54,17 +114,19 @@ async def delete_student_final(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     
-    if query.data == "confirm_delete":
+    if query.data == "delete_confirm":
         with Session() as session:
-            student = session.query(Student).filter_by(tg_id=context.user_data["delete_tg_id"]).first()
+            student = session.query(Student).filter_by(
+                tg_id=context.user_data["delete_tg_id"]
+            ).first()
             if student:
                 session.delete(student)
                 session.commit()
-                await query.message.reply_text("✅ Студент успешно удален!")
+                await query.edit_message_text("🗑️ Студент удален!")
             else:
-                await query.message.reply_text("❌ Студент уже был удален")
+                await query.edit_message_text("⚠️ Студент уже удален")
     else:
-        await query.message.reply_text("❌ Удаление отменено")
+        await query.edit_message_text("❌ Удаление отменено")
     
     context.user_data.clear()
     return ConversationHandler.END
@@ -73,7 +135,7 @@ def admin_conversation_handler():
     return ConversationHandler(
         entry_points=[
             CommandHandler("admin", admin_start),
-            CommandHandler("delete_student", delete_student_start)  # Новая команда
+            CommandHandler("delete", delete_student_start)
         ],
         states={
             AWAIT_PASSWORD: [MessageHandler(filters.TEXT, auth_admin)],
@@ -84,6 +146,7 @@ def admin_conversation_handler():
             DELETE_STUDENT: [MessageHandler(filters.TEXT, delete_student_confirm)]
         },
         fallbacks=[
-            CallbackQueryHandler(delete_student_final, pattern="^(confirm_delete|cancel_delete)$")
-        ]
+            CallbackQueryHandler(delete_student_final, pattern="^delete_")
+        ],
+        allow_reentry=True
     )
