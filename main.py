@@ -50,7 +50,6 @@ def main():
         .post_init(post_init)\
         .build()
     
-    # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(callbacks.setup_callbacks_handler())
     application.add_handler(admin.admin_conversation_handler())
@@ -59,7 +58,6 @@ def main():
     application.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
     
-    # ТОЛЬКО WEBHOOK ДЛЯ PRODUCTION
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
