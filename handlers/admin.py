@@ -1,21 +1,13 @@
 # handlers/admin.py
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import (
-    ContextTypes,
-    ConversationHandler,
-    CommandHandler,
-    MessageHandler,
-    filters,
-    CallbackQueryHandler
-)
-from config import Config
+from telegram.ext import ContextTypes, ConversationHandler
 from models import Student, Session
 from .utils import show_admin_menu, list_students
-import re
 
 # Состояния диалога
 (
     AWAIT_PASSWORD,
+    ADMIN_MENU,
     ADD_STUDENT,
     GET_TG_ID,
     GET_FULLNAME,
@@ -26,7 +18,7 @@ import re
     EDIT_FIELD,
     CONFIRM_EDIT,
     DELETE_FLOW
-) = range(11)
+) = range(12)
 
 ADMIN_PASSWORD = "Drive"
 
