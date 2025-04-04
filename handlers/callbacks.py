@@ -16,10 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 NAME, PHONE, QUESTION = range(3)
 
-# ======================= ОБРАТНЫЙ ЗВОНОК =======================
-
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Начало диалога обратного звонка"""
     query = update.callback_query
     await query.answer()
     
@@ -27,12 +24,10 @@ async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text(
         "📞 Запрос обратного звонка\n\nПожалуйста, введите ваше имя:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка имени"""
     context.user_data['name'] = update.message.text
     
     keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="callback_request")]]
@@ -43,19 +38,16 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка телефона"""
     context.user_data['phone'] = update.message.text
     
     keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_phone")]]
     
     await update.message.reply_text(
         "Кратко опишите ваш вопрос:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отправка данных на почту"""
     context.user_data['question'] = update.message.text
     
     try:
@@ -63,8 +55,7 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Имя: {context.user_data['name']}\n"
             f"Телефон: {context.user_data['phone']}\n"
             f"Вопрос: {context.user_data['question']}\n"
-            f"Дата: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
+            f"Дата: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         msg['Subject'] = 'Новый запрос звонка'
         msg['From'] = Config.EMAIL_USER
         msg['To'] = Config.ADMIN_EMAIL
@@ -81,33 +72,28 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     return ConversationHandler.END
 
-# ======================= ОБЩИЕ ФУНКЦИИ =======================
-
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена диалога"""
     await update.message.reply_text("❌ Запрос отменен")
     context.user_data.clear()
     return ConversationHandler.END
 
 def setup_callbacks_handler() -> ConversationHandler:
-    """Настройка обработчика"""
     return ConversationHandler(
         entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
         states={
             NAME: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, get_name),
-                CallbackQueryHandler(start_callback, pattern="^back_main$")
+                CallbackQueryHandler(start_callback, pattern="^callback_request$")
             ],
             PHONE: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone),
-                CallbackQueryHandler(start_callback, pattern="^callback_request$")
+                CallbackQueryHandler(get_name, pattern="^back_phone$")
             ],
             QUESTION: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, get_question),
-                CallbackQueryHandler(get_phone, pattern="^back_phone$")
+                MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)
             ]
         },
         fallbacks=[CommandHandler('cancel', cancel)],
-        per_message=True,
+        per_message=False,  # Исправлено на False
         allow_reentry=True
     )
