@@ -1,9 +1,7 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+# handlers/utils.py
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from models import Student, Session
-
-ADMIN_MENU = 1
-SELECT_GROUP = 7
 
 async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
@@ -15,7 +13,6 @@ async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Админ-панель:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-    return ADMIN_MENU
 
 async def list_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -34,4 +31,3 @@ async def list_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Выберите группу:",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
-    return SELECT_GROUP
