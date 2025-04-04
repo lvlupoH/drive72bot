@@ -52,20 +52,11 @@ async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📋 Список студентов", callback_data="list_students")],
         [InlineKeyboardButton("➕ Добавить студента", callback_data="add_student")],
-        [InlineKeyboardButton("🗑️ Удалить студента", callback_data="delete_student")],
-        [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
+        [InlineKeyboardButton("🗑️ Удалить студента", callback_data="delete_student")]
     ]
-    
-    if update.callback_query:
-        await update.callback_query.edit_message_text(
-            "Админ-панель:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    else:
-        await update.message.reply_text(
-            "Админ-панель:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+    await update.message.reply_text(
+        "Админ-панель:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     return ADMIN_MENU
 
 # ======================= РАБОТА СО СТУДЕНТАМИ =======================
@@ -93,8 +84,7 @@ async def get_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Внутренний экзамен: ДД.ММ.ГГГГ\n"
         "Гос. экзамен: ДД.ММ.ГГГГ\n"
         "Практика: ДД.ММ.ГГГГ\n"
-        "Адрес: ул. Примерная, 1"
-    )
+        "Адрес: ул. Примерная, 1")
     return GET_EXAMS
 
 async def process_exam_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -124,6 +114,25 @@ async def process_exam_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return await show_admin_menu(update, context)
 
 # ---------- Список студентов ----------
+async def list_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показ списка групп"""
+    query = update.callback_query
+    await query.answer()
+    
+    with Session() as session:
+        groups = session.query(Student.group).distinct().all()
+    
+    buttons = [
+        [InlineKeyboardButton(f"Группа {group[0]}", callback_data=f"group_{group[0]}")]
+        for group in groups
+    ]
+    buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_admin")])
+    
+    await query.edit_message_text(
+        "Выберите группу:",
+        reply_markup=InlineKeyboardMarkup(buttons))
+    return SELECT_GROUP
+
 async def show_group_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Показ студентов группы"""
     query = update.callback_query
@@ -136,15 +145,14 @@ async def show_group_students(update: Update, context: ContextTypes.DEFAULT_TYPE
     buttons = [
         [InlineKeyboardButton(
             f"{student.fullname} (ID: {student.tg_id})", 
-            callback_data=f"student_{student.id}"
-        )] for student in students
+            callback_data=f"student_{student.id}")]
+        for student in students
     ]
     buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_groups")])
     
     await query.edit_message_text(
         f"Студенты группы {group}:",
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+        reply_markup=InlineKeyboardMarkup(buttons))
     return SELECT_STUDENT
 
 # ---------- Редактирование студента ----------
@@ -294,8 +302,8 @@ def admin_conversation_handler():
                 CallbackQueryHandler(list_students, pattern="^list_students$"),
                 CallbackQueryHandler(add_student_flow, pattern="^add_student$"),
                 CallbackQueryHandler(delete_student_flow, pattern="^delete_student$"),
-                CallbackQueryHandler(back_admin_menu, pattern="^back_admin$"),
-                CallbackQueryHandler(delete_student_final, pattern="^delete_")
+                CallbackQueryHandler(delete_student_final, pattern="^delete_"),
+                CallbackQueryHandler(back_admin_menu, pattern="^back_admin$")
             ],
             GET_TG_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_tg_id)],
             GET_FULLNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_fullname)],
