@@ -52,12 +52,12 @@ async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📋 Список студентов", callback_data="list_students")],
         [InlineKeyboardButton("➕ Добавить студента", callback_data="add_student")],
-        [InlineKeyboardButton("🗑️ Удалить студента", callback_data="delete_student")]
+        [InlineKeyboardButton("🗑️ Удалить студента", callback_data="delete_student")],
+        [InlineKeyboardButton("🔙 В главное меню", callback_data="back_main")]
     ]
     await update.message.reply_text(
         "Админ-панель:",
         reply_markup=InlineKeyboardMarkup(keyboard)
-    )
     return ADMIN_MENU
 
 # ======================= РАБОТА СО СТУДЕНТАМИ =======================
@@ -65,28 +65,38 @@ async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------- Добавление студента ----------
 async def add_student_flow(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начало процесса добавления студента"""
-    await update.callback_query.message.reply_text("Введите Telegram ID студента:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.callback_query.message.reply_text(
+        "Введите Telegram ID студента:",
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return GET_TG_ID
 
 async def get_tg_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["tg_id"] = update.message.text
-    await update.message.reply_text("Введите ФИО студента:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.message.reply_text(
+        "Введите ФИО студента:",
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return GET_FULLNAME
 
 async def get_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["fullname"] = update.message.text
-    await update.message.reply_text("Введите номер группы:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.message.reply_text(
+        "Введите номер группы:",
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return GET_GROUP
 
 async def get_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["group"] = update.message.text
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
     await update.message.reply_text(
         "Введите данные в формате:\n"
         "Внутренний экзамен: ДД.ММ.ГГГГ\n"
         "Гос. экзамен: ДД.ММ.ГГГГ\n"
         "Практика: ДД.ММ.ГГГГ\n"
-        "Адрес: ул. Примерная, 1"
-    )
+        "Адрес: ул. Примерная, 1",
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return GET_EXAMS
 
 async def process_exam_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -132,8 +142,7 @@ async def list_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text(
         "Выберите группу:",
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+        reply_markup=InlineKeyboardMarkup(buttons))
     return SELECT_GROUP
 
 async def show_group_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -155,8 +164,7 @@ async def show_group_students(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     await query.edit_message_text(
         f"Студенты группы {group}:",
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+        reply_markup=InlineKeyboardMarkup(buttons))
     return SELECT_STUDENT
 
 # ---------- Редактирование студента ----------
@@ -196,8 +204,7 @@ async def select_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Гос. экзамен: {context.user_data['student_data']['state_exam']}\n"
         f"Практика: {context.user_data['student_data']['practical_exam']}\n"
         f"Адрес: {context.user_data['student_data']['address']}",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return EDIT_FIELD
 
 async def select_field_to_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -215,9 +222,10 @@ async def select_field_to_edit(update: Update, context: ContextTypes.DEFAULT_TYP
         "address": "Адрес"
     }
     
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data=f"back_student_{context.user_data['edit_student']}")]]
     await query.message.reply_text(
-        f"✍️ Введите новое значение для {fields_description[field]}:"
-    )
+        f"✍️ Введите новое значение для {fields_description[field]}:",
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return CONFIRM_EDIT
 
 async def save_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -237,7 +245,10 @@ async def save_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------- Удаление студента ----------
 async def delete_student_flow(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начало процесса удаления"""
-    await update.callback_query.message.reply_text("Введите Telegram ID студента:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.callback_query.message.reply_text(
+        "Введите Telegram ID студента:",
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return DELETE_FLOW
 
 async def confirm_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -253,40 +264,17 @@ async def confirm_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [
         [InlineKeyboardButton("✅ Подтвердить", callback_data="delete_confirm")],
-        [InlineKeyboardButton("❌ Отмена", callback_data="delete_cancel")]
+        [InlineKeyboardButton("❌ Отмена", callback_data="back_admin")]
     ]
     await update.message.reply_text(
         f"❗️ Удалить студента с ID: {tg_id}?",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return ADMIN_MENU
-
-async def delete_student_final(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Финальное удаление"""
-    query = update.callback_query
-    await query.answer()
-    
-    if query.data == "delete_confirm":
-        with Session() as session:
-            student = session.query(Student).filter_by(
-                tg_id=context.user_data["delete_tg_id"]
-            ).first()
-            if student:
-                session.delete(student)
-                session.commit()
-                await query.edit_message_text("🗑️ Студент успешно удален!")
-            else:
-                await query.edit_message_text("⚠️ Студент уже был удален")
-    else:
-        await query.edit_message_text("❌ Удаление отменено")
-    
-    context.user_data.clear()
-    return await show_admin_menu(update, context)
 
 # ======================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =======================
 
 async def back_to_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Возврат в главное меню"""
+    """Возврат в главное меню админа"""
     return await show_admin_menu(update, context)
 
 async def cancel_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
