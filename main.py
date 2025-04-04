@@ -12,7 +12,9 @@ from handlers import (
     back,
     callbacks,
     categories,
-    profile
+    profile,
+    personal,
+    requests
 )
 
 logging.basicConfig(
@@ -21,28 +23,37 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ======================= ОСНОВНЫЕ КОМАНДЫ =======================
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /start"""
     user_id = update.effective_user.id
     has_profile = await profile.check_profile(user_id)
     
     buttons = [
-        [{"text": "Категории", "callback_data": "categories"}],
-        [{"text": "Дополнительные занятия", "callback_data": "extra_classes"}],
-        [{"text": "Обратный звонок", "callback_data": "callback_request"}],
-        [{"text": "Наши инструктора", "callback_data": "instructors"}],
-        [{"text": "Галерея", "callback_data": "gallery"}]
+        [InlineKeyboardButton("Категории", callback_data="categories")],
+        [InlineKeyboardButton("Дополнительные занятия", callback_data="extra_lessons")],
+        [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
+        [InlineKeyboardButton("Наши инструктора", callback_data="instructors")],
+        [InlineKeyboardButton("Галерея", callback_data="gallery")]
     ]
     
     if has_profile:
-        buttons.append([{"text": "Личный кабинет", "callback_data": "profile"}])
+        buttons.append([InlineKeyboardButton("Личный кабинет", callback_data="profile")])
+    
+    buttons.append([InlineKeyboardButton("Админ-панель", callback_data="admin_panel")])
     
     await update.message.reply_text(
         "Добро пожаловать в автошколу Drive!",
-        reply_markup={"inline_keyboard": buttons}
+        reply_markup=InlineKeyboardMarkup(buttons)
     )
+
+# ======================= WEBHOOK НАСТРОЙКИ =======================
 
 async def post_init(application):
     await application.bot.set_webhook(Config.WEBHOOK_URL)
+
+# ======================= ЗАПУСК ПРИЛОЖЕНИЯ =======================
 
 def main():
     application = Application.builder()\
@@ -50,14 +61,19 @@ def main():
         .post_init(post_init)\
         .build()
     
+    # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(callbacks.setup_callbacks_handler())
+    application.add_handler(requests.setup_requests_handler())
     application.add_handler(admin.admin_conversation_handler())
-    application.add_handler(profile.profile_handler())
+    application.add_handler(personal.profile_handler())
+    
+    # Обработчики категорий и возвратов
     application.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
     
+    # Запуск вебхука
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
