@@ -23,7 +23,6 @@ async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # Добавлена кнопка "Назад" в главное меню
     keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_main")]]
     
     await query.edit_message_text(
@@ -36,7 +35,6 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка имени"""
     context.user_data['name'] = update.message.text
     
-    # Кнопка возврата в начало диалога
     keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="callback_request")]]
     
     await update.message.reply_text(
@@ -48,7 +46,6 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка телефона"""
     context.user_data['phone'] = update.message.text
     
-    # Кнопка возврата к предыдущему шагу
     keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_phone")]]
     
     await update.message.reply_text(
@@ -99,7 +96,7 @@ def setup_callbacks_handler() -> ConversationHandler:
         states={
             NAME: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, get_name),
-                CallbackQueryHandler(back_handler, pattern="^back_main$")
+                CallbackQueryHandler(start_callback, pattern="^back_main$")
             ],
             PHONE: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone),
@@ -107,22 +104,10 @@ def setup_callbacks_handler() -> ConversationHandler:
             ],
             QUESTION: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, get_question),
-                CallbackQueryHandler(get_name, pattern="^back_phone$")
+                CallbackQueryHandler(get_phone, pattern="^back_phone$")
             ]
         },
         fallbacks=[CommandHandler('cancel', cancel)],
         per_message=True,
         allow_reentry=True
     )
-
-# ======================= ВСПОМОГАТЕЛЬНЫЙ ХЕНДЛЕР =======================
-async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка кнопки Назад"""
-    query = update.callback_query
-    await query.answer()
-    
-    if query.data == "back_main":
-        from .main_menu import show_main_menu  # Импорт внутри функции чтобы избежать циклических зависимостей
-        await show_main_menu(update, context)
-    
-    return ConversationHandler.END
