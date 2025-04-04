@@ -59,7 +59,7 @@ def main():
     application.add_handler(setup_requests_handler())
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
-    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
+    application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
     
     # Webhook конфигурация
     application.run_webhook(
