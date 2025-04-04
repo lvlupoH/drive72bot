@@ -1,5 +1,5 @@
 import logging
-from telegram import Update
+from telegram import Update, InlineKeyboardButton
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -27,15 +27,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     has_profile = await profile.check_profile(user_id)
     
     buttons = [
-        [{"text": "Категории", "callback_data": "categories"}],
-        [{"text": "Дополнительные занятия", "callback_data": "extra_lessons"}],
-        [{"text": "Обратный звонок", "callback_data": "callback_request"}],
-        [{"text": "Наши инструктора", "callback_data": "instructors"}],
-        [{"text": "Галерея", "callback_data": "gallery"}]
+        [InlineKeyboardButton("Категории", callback_data="categories")],
+        [InlineKeyboardButton("Дополнительные занятия", callback_data="extra_lessons")],
+        [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
+        [InlineKeyboardButton("Наши инструктора", callback_data="instructors")],
+        [InlineKeyboardButton("Галерея", callback_data="gallery")]
     ]
     
     if has_profile:
-        buttons.append([{"text": "Личный кабинет", "callback_data": "profile"}])
+        buttons.append([InlineKeyboardButton("Личный кабинет", callback_data="profile")])
     
     await update.message.reply_text(
         "Добро пожаловать в автошколу Drive!",
@@ -68,10 +68,10 @@ def main():
         pattern="^(cat_a|cat_b)$"
     ))
     
-    # Универсальный обработчик кнопок "Назад"
+    # Глобальный обработчик возврата
     application.add_handler(CallbackQueryHandler(
         back_handler, 
-        pattern=r"^back_"
+        pattern="^back_"
     ))
     
     # Запуск вебхука
