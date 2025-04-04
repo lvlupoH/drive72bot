@@ -126,6 +126,7 @@ async def select_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         f"📝 Редактирование студента:\n\n{_format_student_data(context)}",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return EDIT_FIELD
 
 def _format_student_data(context):
