@@ -8,13 +8,14 @@ from telegram.ext import (
 )
 from config import Config
 from handlers import (
-    admin,
-    back,
-    callbacks,
-    categories,
-    profile,
-    requests
+    admin_conversation_handler,
+    setup_callbacks_handler,
+    handle_categories,
+    show_packages,
+    profile_handler,
+    back_handler
 )
+from handlers.requests import setup_requests_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -22,37 +23,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ======================= ОСНОВНЫЕ КОМАНДЫ =======================
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start"""
     user_id = update.effective_user.id
-    has_profile = await profile.check_profile(user_id)
+    has_profile = False  # Временная заглушка
     
     buttons = [
-        [InlineKeyboardButton("Категории", callback_data="categories")],
-        [InlineKeyboardButton("Дополнительные занятия", callback_data="extra_lessons")],
-        [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
-        [InlineKeyboardButton("Наши инструктора", callback_data="instructors")],
-        [InlineKeyboardButton("Галерея", callback_data="gallery")]
+        [{"text": "Категории", "callback_data": "categories"}],
+        [{"text": "Дополнительные занятия", "callback_data": "extra_lessons"}],
+        [{"text": "Обратный звонок", "callback_data": "callback_request"}],
+        [{"text": "Наши инструктора", "callback_data": "instructors"}],
+        [{"text": "Галерея", "callback_data": "gallery"}]
     ]
     
     if has_profile:
-        buttons.append([InlineKeyboardButton("Личный кабинет", callback_data="profile")])
-    
-    reply_markup = InlineKeyboardMarkup(buttons)
+        buttons.append([{"text": "Личный кабинет", "callback_data": "profile"}])
     
     await update.message.reply_text(
-        "🚗 Добро пожаловать в автошколу Drive!",
-        reply_markup=reply_markup
+        "Добро пожаловать в автошколу Drive!",
+        reply_markup={"inline_keyboard": buttons}
     )
-
-# ======================= НАСТРОЙКА ВЕБХУКА =======================
 
 async def post_init(application):
     await application.bot.set_webhook(Config.WEBHOOK_URL)
-
-# ======================= ЗАПУСК ПРИЛОЖЕНИЯ =======================
 
 def main():
     application = Application.builder()\
@@ -62,28 +54,14 @@ def main():
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(callbacks.setup_callbacks_handler())
-    application.add_handler(admin.admin_conversation_handler())
-    application.add_handler(requests.setup_requests_handler())
-    application.add_handler(profile.profile_handler())
+    application.add_handler(setup_callbacks_handler())
+    application.add_handler(admin_conversation_handler())
+    application.add_handler(setup_requests_handler())
+    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
+    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
+    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
     
-    # Обработчики категорий
-    application.add_handler(CallbackQueryHandler(
-        categories.handle_categories, 
-        pattern="^categories$"
-    ))
-    application.add_handler(CallbackQueryHandler(
-        categories.show_packages, 
-        pattern="^(cat_a|cat_b)$"
-    ))
-    
-    # Навигация назад
-    application.add_handler(CallbackQueryHandler(
-        back.back_handler, 
-        pattern=r"^back_(main|categories|admin|groups|requests|profile)$"
-    ))
-    
-    # Запуск вебхука
+    # Webhook конфигурация
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
