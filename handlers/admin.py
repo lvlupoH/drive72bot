@@ -124,6 +124,7 @@ async def show_group_students(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.edit_message_text(
         f"Студенты группы {group}:",
         reply_markup=InlineKeyboardMarkup(buttons)
+    )
     return SELECT_STUDENT
 
 # ---------- Редактирование студента ----------
