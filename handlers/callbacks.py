@@ -1,4 +1,4 @@
-from telegram import Update, ReplyKeyboardRemove
+from telegram import Update, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes,
     ConversationHandler,
@@ -18,20 +18,29 @@ NAME, PHONE, QUESTION = range(3)
 
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_main")]]
     await update.callback_query.message.reply_text(
         "📞 Запрос обратного звонка\n\nПожалуйста, введите ваше имя:",
-        reply_markup=ReplyKeyboardRemove()
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['name'] = update.message.text
-    await update.message.reply_text("Теперь введите ваш номер телефона:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_main")]]
+    await update.message.reply_text(
+        "Теперь введите ваш номер телефона:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['phone'] = update.message.text
-    await update.message.reply_text("Кратко опишите ваш вопрос:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_main")]]
+    await update.message.reply_text(
+        "Кратко опишите ваш вопрос:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
