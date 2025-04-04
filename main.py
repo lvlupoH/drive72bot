@@ -8,14 +8,13 @@ from telegram.ext import (
 )
 from config import Config
 from handlers import (
-    admin_conversation_handler,
-    setup_callbacks_handler,
-    handle_categories,
-    show_packages,
-    profile_handler,
-    back_handler
+    admin,
+    callbacks,
+    categories,
+    profile,
+    back_handler,
+    requests
 )
-from handlers.requests import setup_requests_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -25,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    has_profile = False  # Временная заглушка
+    has_profile = await profile.check_profile(user_id)
     
     buttons = [
         [{"text": "Категории", "callback_data": "categories"}],
@@ -54,14 +53,28 @@ def main():
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(setup_callbacks_handler())
-    application.add_handler(admin_conversation_handler())
-    application.add_handler(setup_requests_handler())
-    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
-    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
-    application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
+    application.add_handler(callbacks.setup_callbacks_handler())
+    application.add_handler(admin.admin_conversation_handler())
+    application.add_handler(profile.profile_handler())
+    application.add_handler(requests.setup_requests_handler())
     
-    # Webhook конфигурация
+    # Обработчики категорий
+    application.add_handler(CallbackQueryHandler(
+        categories.handle_categories, 
+        pattern="^categories$"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        categories.show_packages, 
+        pattern="^(cat_a|cat_b)$"
+    ))
+    
+    # Универсальный обработчик кнопок "Назад"
+    application.add_handler(CallbackQueryHandler(
+        back_handler, 
+        pattern=r"^back_"
+    ))
+    
+    # Запуск вебхука
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
