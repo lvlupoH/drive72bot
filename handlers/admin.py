@@ -1,8 +1,16 @@
-# handlers/admin.py
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram.ext import (
+    ContextTypes,
+    ConversationHandler,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    CallbackQueryHandler
+)
 from models import Student, Session
 from .utils import show_admin_menu, list_students
+from config import Config
+import re
 
 # Состояния диалога
 (
@@ -22,7 +30,10 @@ from .utils import show_admin_menu, list_students
 
 ADMIN_PASSWORD = "Drive"
 
+# ======================= ОСНОВНЫЕ ХЕНДЛЕРЫ =======================
+
 async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Начало диалога админ-панели"""
     if update.effective_user.id != Config.ADMIN_ID:
         return ConversationHandler.END
         
@@ -30,14 +41,18 @@ async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return AWAIT_PASSWORD
 
 async def auth_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Проверка пароля"""
     if update.message.text != ADMIN_PASSWORD:
         await update.message.reply_text("❌ Неверный пароль!")
         return ConversationHandler.END
         
     return await show_admin_menu(update, context)
 
-# Добавление студента
+# ======================= РАБОТА СО СТУДЕНТАМИ =======================
+
+# ---------- Добавление студента ----------
 async def add_student_flow(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Начало процесса добавления студента"""
     await update.callback_query.message.reply_text("Введите Telegram ID студента:")
     return GET_TG_ID
 
@@ -63,6 +78,7 @@ async def get_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return GET_EXAMS
 
 async def process_exam_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка данных экзаменов"""
     text = update.message.text
     dates = re.findall(r"\d{2}\.\d{2}\.\d{4}", text)
     address_match = re.search(r"Адрес:\s*(.+)", text)
@@ -87,8 +103,32 @@ async def process_exam_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Студент успешно добавлен!")
     return await show_admin_menu(update, context)
 
-# Редактирование студента
+# ---------- Список студентов ----------
+async def show_group_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показ студентов группы"""
+    query = update.callback_query
+    group = query.data.split("_")[1]
+    context.user_data["current_group"] = group
+    
+    with Session() as session:
+        students = session.query(Student).filter_by(group=group).all()
+    
+    buttons = [
+        [InlineKeyboardButton(
+            f"{student.fullname} (ID: {student.tg_id})", 
+            callback_data=f"student_{student.id}"
+        )] for student in students
+    ]
+    buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_groups")])
+    
+    await query.edit_message_text(
+        f"Студенты группы {group}:",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    return SELECT_STUDENT
+
+# ---------- Редактирование студента ----------
 async def select_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Меню редактирования студента"""
     query = update.callback_query
     student_id = int(query.data.split("_")[1])
     
@@ -116,23 +156,18 @@ async def select_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     
     await query.edit_message_text(
-        f"📝 Редактирование студента:\n\n{_format_student_data(context)}",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+        f"📝 Редактирование студента:\n\n"
+        f"ФИО: {context.user_data['student_data']['fullname']}\n"
+        f"Группа: {context.user_data['student_data']['group']}\n"
+        f"Внутренний экзамен: {context.user_data['student_data']['internal_exam']}\n"
+        f"Гос. экзамен: {context.user_data['student_data']['state_exam']}\n"
+        f"Практика: {context.user_data['student_data']['practical_exam']}\n"
+        f"Адрес: {context.user_data['student_data']['address']}",
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return EDIT_FIELD
 
-def _format_student_data(context):
-    data = context.user_data['student_data']
-    return (
-        f"ФИО: {data['fullname']}\n"
-        f"Группа: {data['group']}\n"
-        f"Внутренний экзамен: {data['internal_exam']}\n"
-        f"Гос. экзамен: {data['state_exam']}\n"
-        f"Практика: {data['practical_exam']}\n"
-        f"Адрес: {data['address']}"
-    )
-
 async def select_field_to_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Выбор поля для редактирования"""
     query = update.callback_query
     field = query.data.split("_")[1]
     context.user_data["edit_field"] = field
@@ -146,10 +181,12 @@ async def select_field_to_edit(update: Update, context: ContextTypes.DEFAULT_TYP
         "address": "Адрес"
     }
     
-    await query.message.reply_text(f"✍️ Введите новое значение для {fields_description[field]}:")
+    await query.message.reply_text(
+        f"✍️ Введите новое значение для {fields_description[field]}:")
     return CONFIRM_EDIT
 
 async def save_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Сохранение изменений"""
     new_value = update.message.text
     field = context.user_data["edit_field"]
     student_id = context.user_data["edit_student"]
@@ -162,12 +199,14 @@ async def save_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Изменения успешно сохранены!")
     return await select_student(update, context)
 
-# Удаление студента
+# ---------- Удаление студента ----------
 async def delete_student_flow(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Начало процесса удаления"""
     await update.callback_query.message.reply_text("Введите Telegram ID студента:")
     return DELETE_FLOW
 
 async def confirm_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Подтверждение удаления"""
     tg_id = update.message.text
     context.user_data["delete_tg_id"] = tg_id
     
@@ -187,6 +226,7 @@ async def confirm_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ADMIN_MENU
 
 async def delete_student_final(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Финальное удаление"""
     query = update.callback_query
     await query.answer()
     
@@ -207,13 +247,18 @@ async def delete_student_final(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data.clear()
     return await show_admin_menu(update, context)
 
-# Вспомогательные функции
+# ======================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =======================
+
 async def cancel_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Отмена операции"""
     await update.message.reply_text("❌ Операция отменена")
     context.user_data.clear()
     return ConversationHandler.END
 
+# ======================= НАСТРОЙКА ОБРАБОТЧИКА =======================
+
 def admin_conversation_handler():
+    """Конфигурация ConversationHandler"""
     return ConversationHandler(
         entry_points=[CommandHandler("admin", admin_start)],
         states={
@@ -222,7 +267,8 @@ def admin_conversation_handler():
                 CallbackQueryHandler(list_students, pattern="^list_students$"),
                 CallbackQueryHandler(add_student_flow, pattern="^add_student$"),
                 CallbackQueryHandler(delete_student_flow, pattern="^delete_student$"),
-                CallbackQueryHandler(delete_student_final, pattern="^delete_")
+                CallbackQueryHandler(delete_student_final, pattern="^delete_"),
+                CallbackQueryHandler(back_to_admin_menu, pattern="^back_admin$")
             ],
             GET_TG_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_tg_id)],
             GET_FULLNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_fullname)],
@@ -230,7 +276,7 @@ def admin_conversation_handler():
             GET_EXAMS: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_exam_data)],
             SELECT_GROUP: [
                 CallbackQueryHandler(show_group_students, pattern="^group_"),
-                CallbackQueryHandler(show_admin_menu, pattern="^back_groups$")
+                CallbackQueryHandler(list_students, pattern="^back_groups$")
             ],
             SELECT_STUDENT: [
                 CallbackQueryHandler(select_student, pattern="^student_"),
@@ -244,26 +290,6 @@ def admin_conversation_handler():
             DELETE_FLOW: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_delete)]
         },
         fallbacks=[CommandHandler("cancel", cancel_admin)],
+        per_message=True,
         allow_reentry=True
     )
-
-async def show_group_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    group = query.data.split("_")[1]
-    context.user_data["current_group"] = group
-    
-    with Session() as session:
-        students = session.query(Student).filter_by(group=group).all()
-    
-    buttons = [
-        [InlineKeyboardButton(
-            f"{student.fullname} (ID: {student.tg_id})", 
-            callback_data=f"student_{student.id}"
-        )] for student in students
-    ]
-    buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_groups")])
-    
-    await query.edit_message_text(
-        f"Студенты группы {group}:",
-        reply_markup=InlineKeyboardMarkup(buttons))
-    return SELECT_STUDENT
