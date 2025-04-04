@@ -55,6 +55,7 @@ async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Админ-панель:",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return ADMIN_MENU
 
 # ======================= РАБОТА СО СТУДЕНТАМИ =======================
