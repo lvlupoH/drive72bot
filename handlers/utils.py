@@ -1,4 +1,3 @@
-# handlers/utils.py
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from models import Student, Session
@@ -29,5 +28,4 @@ async def list_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text(
         "Выберите группу:",
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+        reply_markup=InlineKeyboardMarkup(buttons))
