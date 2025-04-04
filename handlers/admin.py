@@ -7,9 +7,8 @@ from telegram.ext import (
     filters,
     CallbackQueryHandler
 )
-from models import Student, Session
-from .utils import show_admin_menu, list_students
 from config import Config
+from models import Student, Session
 import re
 
 # Состояния диалога
@@ -47,6 +46,27 @@ async def auth_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
         
     return await show_admin_menu(update, context)
+
+async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Главное меню админа"""
+    keyboard = [
+        [InlineKeyboardButton("📋 Список студентов", callback_data="list_students")],
+        [InlineKeyboardButton("➕ Добавить студента", callback_data="add_student")],
+        [InlineKeyboardButton("🗑️ Удалить студента", callback_data="delete_student")],
+        [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
+    ]
+    
+    if update.callback_query:
+        await update.callback_query.edit_message_text(
+            "Админ-панель:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    else:
+        await update.message.reply_text(
+            "Админ-панель:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    return ADMIN_MENU
 
 # ======================= РАБОТА СО СТУДЕНТАМИ =======================
 
@@ -250,6 +270,12 @@ async def delete_student_final(update: Update, context: ContextTypes.DEFAULT_TYP
 
 # ======================= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =======================
 
+async def back_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Возврат в меню админа"""
+    query = update.callback_query
+    await query.answer()
+    return await show_admin_menu(update, context)
+
 async def cancel_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Отмена операции"""
     await update.message.reply_text("❌ Операция отменена")
@@ -268,8 +294,8 @@ def admin_conversation_handler():
                 CallbackQueryHandler(list_students, pattern="^list_students$"),
                 CallbackQueryHandler(add_student_flow, pattern="^add_student$"),
                 CallbackQueryHandler(delete_student_flow, pattern="^delete_student$"),
-                CallbackQueryHandler(delete_student_final, pattern="^delete_"),
-                CallbackQueryHandler(back_to_admin_menu, pattern="^back_admin$")
+                CallbackQueryHandler(back_admin_menu, pattern="^back_admin$"),
+                CallbackQueryHandler(delete_student_final, pattern="^delete_")
             ],
             GET_TG_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_tg_id)],
             GET_FULLNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_fullname)],
@@ -277,7 +303,7 @@ def admin_conversation_handler():
             GET_EXAMS: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_exam_data)],
             SELECT_GROUP: [
                 CallbackQueryHandler(show_group_students, pattern="^group_"),
-                CallbackQueryHandler(list_students, pattern="^back_groups$")
+                CallbackQueryHandler(back_admin_menu, pattern="^back_groups$")
             ],
             SELECT_STUDENT: [
                 CallbackQueryHandler(select_student, pattern="^student_"),
@@ -291,6 +317,5 @@ def admin_conversation_handler():
             DELETE_FLOW: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_delete)]
         },
         fallbacks=[CommandHandler("cancel", cancel_admin)],
-        per_message=True,
         allow_reentry=True
     )
