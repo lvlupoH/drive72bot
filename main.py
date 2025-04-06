@@ -1,5 +1,6 @@
 import logging
-from telegram import Update
+import asyncio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -7,13 +8,7 @@ from telegram.ext import (
     ContextTypes
 )
 from config import Config
-from handlers import (
-    admin,
-    back,
-    callbacks,
-    categories,
-    profile
-)
+from handlers import categories, back, callbacks, admin, profile
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -37,18 +32,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         buttons.append([InlineKeyboardButton("Личный кабинет", callback_data="profile")])
     
     await update.message.reply_text(
-        "Добро пожаловать в автошколу Drive! 🚗",
+        "Добро пожаловать в автошколу Drive!",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
 async def post_init(application):
+    await asyncio.sleep(5)
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    application = Application.builder()\
-        .token(Config.TELEGRAM_TOKEN)\
-        .post_init(post_init)\
-        .build()
+    application = Application.builder().token(Config.TELEGRAM_TOKEN).post_init(post_init).build()
     
     application.add_handler(CommandHandler("start", start))
     application.add_handler(callbacks.setup_callbacks_handler())
@@ -61,8 +54,7 @@ def main():
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
-        webhook_url=Config.WEBHOOK_URL,
-        drop_pending_updates=True
+        webhook_url=Config.WEBHOOK_URL
     )
 
 if __name__ == "__main__":
