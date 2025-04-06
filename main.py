@@ -10,8 +10,12 @@ from telegram.ext import (
 from config import Config
 from handlers.categories import handle_categories, show_packages
 from handlers.back import back_handler
-from handlers.callbacks import setup_callbacks_handler
+from handlers.callbacks import get_callback_handler
 from handlers.admin import get_admin_handler
+from handlers.gallery import handle_gallery
+from handlers.instructors import handle_instructors
+from handlers.profile import handle_profile
+from handlers.lessons import handle_lessons
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -23,8 +27,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [{"text": "Категории", "callback_data": "categories"}],
         [{"text": "Обратный звонок", "callback_data": "callback_request"}],
-        [{"text": "Галерея", "callback_data": "gallery"}],
+        [{"text": "Дополнительные занятия", "callback_data": "lessons"}],
         [{"text": "Инструктора", "callback_data": "instructors"}],
+        [{"text": "Галерея", "callback_data": "gallery"}],
         [{"text": "Личный кабинет", "callback_data": "profile"}]
     ]
     await update.message.reply_text(
@@ -42,10 +47,14 @@ def main():
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(setup_callbacks_handler())
+    application.add_handler(get_callback_handler())
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
+    application.add_handler(CallbackQueryHandler(handle_gallery, pattern="^gallery$"))
+    application.add_handler(CallbackQueryHandler(handle_instructors, pattern="^instructors$"))
+    application.add_handler(CallbackQueryHandler(handle_profile, pattern="^profile$"))
+    application.add_handler(CallbackQueryHandler(handle_lessons, pattern="^lessons$"))
     
     # Админ-панель
     for handler in get_admin_handler():
