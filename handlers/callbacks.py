@@ -1,5 +1,5 @@
 from telegram import Update, ReplyKeyboardRemove
-from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters
+from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CommandHandler, filters
 from config import Config
 import smtplib
 from email.mime.text import MIMEText
