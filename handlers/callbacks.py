@@ -56,8 +56,8 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await update.message.reply_text("✅ Запрос отправлен!")
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
-        await update.message.reply_text("❌ Ошибка отправки")
+        logger.error(f"Ошибка отправки email: {e}", exc_info=True)  # Добавьте exc_info
+        await update.message.reply_text("❌ Ошибка отправки. Попробуйте позже.")
     
     context.user_data.clear()
     return ConversationHandler.END
