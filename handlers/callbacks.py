@@ -4,19 +4,18 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler,
     CommandHandler,
-    CallbackQueryHandler,  # Добавлено
+    CallbackQueryHandler,
     filters
 )
 from config import Config
-import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
+import aiosmtplib
 import logging
 
-NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
+NAME, PHONE, QUESTION = range(3)
 
-# Обработчик для inline-кнопки
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -38,36 +37,55 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['question'] = update.message.text
-    logger.info("Попытка отправки письма...")
-    
     try:
         await send_callback_email(
             context.user_data['name'],
             context.user_data['phone'],
             context.user_data['question']
         )
-        await update.message.reply_text("✅ Запрос успешно отправлен!")
+        await update.message.reply_text("✅ Запрос отправлен! Мы свяжемся с вами в течение 15 минут.")
     except Exception as e:
-        logger.error(f"SMTP Error: {e}")
-        await update.message.reply_text("❌ Ошибка. Попробуйте позже или позвоните нам.")
+        logger.error(f"Ошибка отправки: {str(e)}")
+        await update.message.reply_text("❌ Ошибка. Позвоните нам: +7 (XXX) XXX-XX-XX")
     
     context.user_data.clear()
     return ConversationHandler.END
 
+async def send_callback_email(name: str, phone: str, question: str):
+    body = f"""
+    Новый запрос обратного звонка:
+    Имя: {name}
+    Телефон: {phone}
+    Вопрос: {question}
+    Дата: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    """
+    message = MIMEText(body.strip())
+    message["Subject"] = "📞 Запрос звонка"
+    message["From"] = Config.EMAIL_USER
+    message["To"] = Config.ADMIN_EMAIL
+
+    await aiosmtplib.send(
+        message,
+        hostname="smtp.gmail.com",
+        port=465,
+        username=Config.EMAIL_USER,
+        password=Config.EMAIL_PASSWORD,
+        use_tls=True
+    )
+
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Отменено")
+    await update.message.reply_text("❌ Запрос отменён")
     context.user_data.clear()
     return ConversationHandler.END
 
 def setup_callbacks_handler():
     return ConversationHandler(
-        entry_points=[
-            CallbackQueryHandler(start_callback, pattern="^callback_request$")
-        ],
+        entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[CommandHandler("cancel", cancel)],
+        per_message=True
     )
