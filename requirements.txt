@@ -4,3 +4,4 @@ psycopg2-binary==2.9.9
 sqlalchemy==2.0.23
 python-multipart==0.0.6
 alembic==1.13.1
+aiosmtplib==2.0.0
