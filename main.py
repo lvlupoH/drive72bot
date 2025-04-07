@@ -13,6 +13,8 @@ from handlers.callbacks import setup_callbacks_handler
 from handlers.admin import get_admin_handler
 from handlers.gallery import show_gallery
 from handlers.instructors import show_instructors
+# В разделе регистрации обработчиков:
+from handlers.back import back_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -47,6 +49,7 @@ def main():
     application.add_handler(CallbackQueryHandler(show_gallery, pattern="^gallery$"))
     application.add_handler(CallbackQueryHandler(show_instructors, pattern="^instructors$"))
     application.add_handler(setup_callbacks_handler())
+    application.add_handler(CallbackQueryHandler(back_handler, pattern=r"^back_"))
     
     for handler in get_admin_handler():
         application.add_handler(handler)
