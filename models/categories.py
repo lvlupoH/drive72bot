@@ -23,28 +23,30 @@ CATEGORIES = {
 }
 
 async def handle_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # ... существующий код ...
+    query = update.callback_query
+    await query.answer()
+    keyboard = [
+        [InlineKeyboardButton("Категория А, А1", callback_data="cat_a")],
+        [InlineKeyboardButton("Категория В", callback_data="cat_b")],
+        [InlineKeyboardButton("Назад", callback_data="back_main")]
+    ]
+    await query.edit_message_text(
+        text="Выберите категорию:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     category = query.data
-    
     packages = CATEGORIES[category]["packages"]
-    buttons = []
     
+    buttons = []
     for name, data in packages.items():
-        btn_row = [
-            InlineKeyboardButton(
-                f"{name} - {data['price']}₽", 
-                callback_data=f"info_{name}"
-            ),
-            InlineKeyboardButton(
-                "💳 Оплата", 
-                url="https://driveavto72.ru/contacts"
-            )
-        ]
-        buttons.append(btn_row)
+        buttons.append([
+            InlineKeyboardButton(f"{name} - {data['price']}₽", callback_data=f"info_{name}"),
+            InlineKeyboardButton("💳 Оплата", url="https://driveavto72.ru/contacts")
+        ])
     
     buttons.append([InlineKeyboardButton("Назад", callback_data="back_categories")])
     
