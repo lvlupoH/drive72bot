@@ -87,5 +87,5 @@ def setup_callbacks_handler():
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
         fallbacks=[CommandHandler("cancel", cancel)],
-        per_message=True
+        per_message=False  # Отключено для MessageHandler
     )
