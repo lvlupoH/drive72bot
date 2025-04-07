@@ -35,10 +35,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup={"inline_keyboard": keyboard}
     )
 
+import time
+
 async def post_init(application):
     await asyncio.sleep(5)
     await application.bot.set_webhook(Config.WEBHOOK_URL)
-
+    time.sleep(1)  # Задержка между запросами
 def main():
     config = Config()
     application = Application.builder().token(config.TELEGRAM_TOKEN).post_init(post_init).build()
