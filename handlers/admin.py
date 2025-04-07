@@ -7,8 +7,6 @@ from telegram.ext import (
     filters,
     CallbackQueryHandler
 )
-from models.student import Student
-from models.database import get_db
 from config import Config
 import logging
 
@@ -51,5 +49,8 @@ def get_admin_handler():
             ADMIN_AUTH: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_auth)],
             ADMIN_ACTION: [CallbackQueryHandler(manage_students)]
         },
-        fallbacks=[CommandHandler("cancel", admin_cancel)]
+        fallbacks=[CommandHandler("cancel", admin_cancel)],
+        per_message=True,  # Добавлено
+        per_chat=True,
+        per_user=True
     )]
