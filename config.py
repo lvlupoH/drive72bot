@@ -12,20 +12,20 @@ class Config:
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
     ADMIN_ID = int(os.getenv("ADMIN_ID"))
     WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")  # Новое поле
-    
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
     PORT = int(os.getenv("PORT", 10000))
     ENV = os.getenv("ENV", "production")
 
     @classmethod
     def validate(cls):
-        required = ["TELEGRAM_TOKEN", "DATABASE_URL", "EMAIL_USER",
-                   "EMAIL_PASSWORD", "ADMIN_EMAIL", "ADMIN_ID", 
-                   "WEBHOOK_URL", "ADMIN_PASSWORD"]
+        required = [
+            "TELEGRAM_TOKEN", "DATABASE_URL", "EMAIL_USER",
+            "EMAIL_PASSWORD", "ADMIN_EMAIL", "ADMIN_ID",
+            "WEBHOOK_URL", "ADMIN_PASSWORD"
+        ]
         missing = [var for var in required if not getattr(cls, var)]
-        
         if missing:
-            print(f"Missing: {', '.join(missing)}")
+            print(f"Missing variables: {', '.join(missing)}")
             sys.exit(1)
 
 Config.validate()
