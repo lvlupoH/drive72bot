@@ -50,7 +50,5 @@ def get_admin_handler():
             ADMIN_ACTION: [CallbackQueryHandler(manage_students)]
         },
         fallbacks=[CommandHandler("cancel", admin_cancel)],
-        per_message=True,  # Добавлено
-        per_chat=True,
-        per_user=True
+        per_message=False  # Отключено для CommandHandler/MessageHandler
     )]
