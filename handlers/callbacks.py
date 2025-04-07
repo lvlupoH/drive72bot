@@ -50,7 +50,8 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg['From'] = Config.EMAIL_USER
         msg['To'] = Config.ADMIN_EMAIL
         
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()  # Включаем TLS
             server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
             server.send_message(msg)
         
