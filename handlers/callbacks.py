@@ -37,29 +37,20 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['question'] = update.message.text
+    logger.info("Попытка отправки письма...")
+    
     try:
-        body = f"""
-        Новый запрос звонка:
-        Имя: {context.user_data['name']}
-        Телефон: {context.user_data['phone']}
-        Вопрос: {context.user_data['question']}
-        """
-        msg = MIMEText(body.strip())
-        msg['Subject'] = 'Запрос звонка'
-        msg['From'] = Config.EMAIL_USER
-        msg['To'] = Config.ADMIN_EMAIL
-        
-        with smtplib.SMTP_SSL('smtp.gmail.com', 10000) as server:
-            server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
-        
-        await update.message.reply_text("✅ Запрос отправлен!")
+        await send_callback_email(
+            context.user_data['name'],
+            context.user_data['phone'],
+            context.user_data['question']
+        )
+        await update.message.reply_text("✅ Запрос успешно отправлен!")
     except Exception as e:
-        
-        logger.info("Письмо отправлено!")
-    except Exception as e:
-        logger.error(f"Ошибка SMTP: {str(e)}")
-        await update.message.reply_text("❌ Ошибка отправки. Попробуйте позже.")
-        
+        logger.error(f"SMTP Error: {e}")
+        await update.message.reply_text("❌ Ошибка. Попробуйте позже или позвоните нам.")
+    
     context.user_data.clear()
     return ConversationHandler.END
 
