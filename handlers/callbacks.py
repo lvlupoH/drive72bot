@@ -67,7 +67,7 @@ async def send_callback_email(name: str, phone: str, question: str):
     await aiosmtplib.send(
         message,
         hostname="smtp.gmail.com",
-        port=465,
+        port=10000,
         username=Config.EMAIL_USER,
         password=Config.EMAIL_PASSWORD,
         use_tls=True
