@@ -43,10 +43,14 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['phone'],
             context.user_data['question']
         )
-        await update.message.reply_text("✅ Запрос отправлен! Мы свяжемся с вами в течение 15 минут.")
+        await update.message.reply_text("✅ Данные отправлены! Ожидайте звонка.")
+    
+    except aiosmtplib.SMTPAuthenticationError:
+        await update.message.reply_text("❌ Ошибка доступа к почте. Свяжитесь с администратором.")
+    
     except Exception as e:
-        logger.error(f"Ошибка отправки: {str(e)}")
-        await update.message.reply_text("❌ Ошибка. Позвоните нам: +7 (XXX) XXX-XX-XX")
+        logger.error(f"Ошибка: {str(e)}")
+        await update.message.reply_text("❌ Техническая ошибка. Позвоните: +7 (XXX) XXX-XX-XX")
     
     context.user_data.clear()
     return ConversationHandler.END
