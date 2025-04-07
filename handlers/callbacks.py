@@ -1,5 +1,12 @@
 from telegram import Update, ReplyKeyboardRemove
-from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CommandHandler, filters
+from telegram.ext import (
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    CommandHandler,
+    CallbackQueryHandler,  # Добавлено
+    filters
+)
 from config import Config
 import smtplib
 from email.mime.text import MIMEText
@@ -9,8 +16,11 @@ import logging
 NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
 
+# Обработчик для inline-кнопки
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text(
         "📞 Запрос обратного звонка\nПожалуйста, введите ваше ФИО:",
         reply_markup=ReplyKeyboardRemove()
     )
@@ -59,7 +69,9 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def setup_callbacks_handler():
     return ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex(r'^Обратный звонок$'), start_callback)],
+        entry_points=[
+            CallbackQueryHandler(start_callback, pattern="^callback_request$")
+        ],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
