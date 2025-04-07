@@ -1,16 +1,31 @@
 import os
 from dotenv import load_dotenv
+import sys
 
-# Загрузка переменных окружения из файла .env
 load_dotenv()
 
 class Config:
-    BOT_TOKEN = os.getenv("BOT_TOKEN")
-    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
-    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
-    SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-    SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-    EMAIL_LOGIN = os.getenv("EMAIL_LOGIN")
+    TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    EMAIL_USER = os.getenv("EMAIL_USER")
     EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-    VK_LINK = "https://m.vk.com/drive_72?from=search"
-    TELEGRAM_CHANNEL_LINK = "https://t.me/drive_in_soul"
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+    ADMIN_ID = int(os.getenv("ADMIN_ID"))
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")  # Новое поле
+    
+    PORT = int(os.getenv("PORT", 10000))
+    ENV = os.getenv("ENV", "production")
+
+    @classmethod
+    def validate(cls):
+        required = ["TELEGRAM_TOKEN", "DATABASE_URL", "EMAIL_USER",
+                   "EMAIL_PASSWORD", "ADMIN_EMAIL", "ADMIN_ID", 
+                   "WEBHOOK_URL", "ADMIN_PASSWORD"]
+        missing = [var for var in required if not getattr(cls, var)]
+        
+        if missing:
+            print(f"Missing: {', '.join(missing)}")
+            sys.exit(1)
+
+Config.validate()
