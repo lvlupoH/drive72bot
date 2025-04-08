@@ -277,9 +277,7 @@ async def get_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db.add(student)
         db.commit()
         await update.message.reply_text("✅ Ученик успешно добавлен!")
-    except Exception as e:
-        logger.error(f"Ошибка: {e}")
-        await update.message.reply_text("❌ Ошибка при сохранении")
+    
     context.user_data.clear()
     return ConversationHandler.END
 
