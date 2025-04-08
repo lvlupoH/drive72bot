@@ -40,16 +40,13 @@ async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     category = query.data
     packages = CATEGORIES[category]["packages"]
-    
     buttons = []
     for name, data in packages.items():
         buttons.append([
             InlineKeyboardButton(f"{name} - {data['price']}₽", callback_data=f"info_{name}"),
             InlineKeyboardButton("💳 Оплата", url="https://driveavto72.ru/contacts")
         ])
-    
     buttons.append([InlineKeyboardButton("Назад", callback_data="back_categories")])
-    
     await query.edit_message_text(
         text=f"{CATEGORIES[category]['title']}\n\nВыберите пакет:",
         reply_markup=InlineKeyboardMarkup(buttons)
