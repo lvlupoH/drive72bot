@@ -20,7 +20,7 @@ class Config:
     def validate(cls):
         required = [
             "TELEGRAM_TOKEN", "DATABASE_URL", "EMAIL_USER",
-            "EMAIL_PASSWORD", "ADMIN_EMAIL", "ADMIN_ID",
+            "EMAIL_PASSWORD", "ADMIN_EMAIL", "ADMIN_ID", 
             "WEBHOOK_URL", "ADMIN_PASSWORD"
         ]
         missing = [var for var in required if not getattr(cls, var)]
