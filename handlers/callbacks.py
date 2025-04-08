@@ -8,93 +8,63 @@ from telegram.ext import (
     filters
 )
 from config import Config
+import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
-import aiosmtplib
 import logging
 
-logger = logging.getLogger(__name__)
 NAME, PHONE, QUESTION = range(3)
+logger = logging.getLogger(__name__)
 
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await query.message.reply_text(
-        "📞 Запрос обратного звонка\nПожалуйста, введите ваше ФИО:",
+        "📞 Введите ваше ФИО:",
         reply_markup=ReplyKeyboardRemove()
     )
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['name'] = update.message.text
-    await update.message.reply_text("Введите ваш номер телефона:")
+    await update.message.reply_text("Введите ваш телефон:")
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['phone'] = update.message.text
-    await update.message.reply_text("Опишите ваш вопрос:")
+    await update.message.reply_text("Опишите вопрос:")
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['question'] = update.message.text
     try:
-        await send_callback_email(
-            context.user_data['name'],
-            context.user_data['phone'],
-            context.user_data['question']
-        )
-        await update.message.reply_text("✅ Данные отправлены! Ожидайте звонка.")
-    
-    except aiosmtplib.SMTPAuthenticationError as e:
-        logger.error(f"Ошибка аутентификации: {e}")
-        
-        await update.message.reply_text("❌ Неверный пароль почты.")
+        body = f"Имя: {context.user_data['name']}\nТелефон: {context.user_data['phone']}\nВопрос: {context.user_data['question']}"
+        msg = MIMEText(body)
+        msg['Subject'] = 'Новый запрос'
+        msg['From'] = Config.EMAIL_USER
+        msg['To'] = Config.ADMIN_EMAIL
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
+            server.send_message(msg)
+        await update.message.reply_text("✅ Запрос отправлен!")
     except Exception as e:
-        logger.error(f"Другая ошибка: {e}")
-    
+        logger.error(f"Ошибка: {e}")
+        await update.message.reply_text("❌ Ошибка отправки")
     context.user_data.clear()
     return ConversationHandler.END
 
-async def send_callback_email(name: str, phone: str, question: str):
-    body = f"""
-    Новый запрос обратного звонка:
-    Имя: {name}
-    Телефон: {phone}
-    Вопрос: {question}
-    Дата: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-    """
-    message = MIMEText(body.strip())
-    message["Subject"] = "📞 Запрос звонка"
-    message["From"] = Config.EMAIL_USER
-    message["To"] = Config.ADMIN_EMAIL
-
-    await aiosmtplib.send(
-        message,
-        hostname="smtp.gmail.com",
-        port=465,
-        username=Config.EMAIL_USER,
-        password=Config.EMAIL_PASSWORD,
-        use_tls=True
-    )
-
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Запрос отменён")
-    context.user_data.clear()
+    await update.message.reply_text("❌ Отменено")
     return ConversationHandler.END
 
 def setup_callbacks_handler():
     return ConversationHandler(
-        entry_points=[
-            CallbackQueryHandler(start_callback, pattern="^callback_request$")
-        ],
+        entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
         fallbacks=[CommandHandler('cancel', cancel)],
-        per_message=False,  # <-- Добавлено
-        per_chat=True,
-        per_user=True
+        per_chat=True
     )
-    
