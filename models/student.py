@@ -5,7 +5,7 @@ class Student(Base):
     __tablename__ = "students"
     
     id = Column(Integer, primary_key=True)
-    username = Column(String(50), unique=True)
+    username = Column(String(50), unique=True)  # <-- Убедитесь, что это поле есть
     full_name = Column(String(100))
     phone = Column(String(20))
     group = Column(String(50))
