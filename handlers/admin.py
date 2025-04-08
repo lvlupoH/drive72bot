@@ -280,7 +280,11 @@ async def get_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db.add(student)
         db.commit()
         await update.message.reply_text("✅ Ученик успешно добавлен!")
-    
+    except Exception as e:
+        logger.error(f"Ошибка: {e}")
+        await update.message.reply_text("❌ Ошибка при сохранении")
+    context.user_data.clear()
+    return ConversationHandler.END
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -300,6 +304,158 @@ def get_admin_handler():
                     CallbackQueryHandler(add_student_start, pattern="^add_student$"),
                     CallbackQueryHandler(delete_student, pattern="^delete_student$"),
                     CallbackQueryHandler(admin_back, pattern="^back_main$")
+                ],
+                FULL_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_full_name)],
+                USERNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_username)],
+                PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
+                GROUP: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_group)],
+                THEORY_INT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_theory_int)],
+                THEORY_STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_theory_state)],
+                PRACTICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_practice)],
+                INFO: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_info)]
+            },
+            fallbacks=[CommandHandler("cancel", cancel)],
+            per_chat=True,
+            per_user=True
+        )
+    ]
+    
+    
+    
+    
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ContextTypes,
+    ConversationHandler,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    filters
+)
+from datetime import datetime
+from models.student import Student
+from models.database import get_db
+from config import Config
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Состояния для админ-панели
+ADMIN_AUTH, ADMIN_ACTION = range(2)
+# Состояния для добавления ученика
+(
+    FULL_NAME, USERNAME, PHONE, GROUP, 
+    THEORY_INT, THEORY_STATE, PRACTICE, INFO
+) = range(8)
+
+async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != Config.ADMIN_ID:
+        await update.message.reply_text("🚫 Доступ запрещен")
+        return ConversationHandler.END
+    await update.message.reply_text("🔑 Введите пароль администратора:")
+    return ADMIN_AUTH
+
+async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text == Config.ADMIN_PASSWORD:
+        keyboard = [
+            [InlineKeyboardButton("Список учеников", callback_data="list_students")],
+            [InlineKeyboardButton("Добавить ученика", callback_data="add_student")],
+            [InlineKeyboardButton("Удалить ученика", callback_data="delete_student")],
+            [InlineKeyboardButton("Назад", callback_data="back_main")]
+        ]
+        await update.message.reply_text(
+            "🔐 Админ-панель:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return ADMIN_ACTION
+    else:
+        await update.message.reply_text("❌ Неверный пароль")
+        return ConversationHandler.END
+
+async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text("Введите ФИО ученика:")
+    return FULL_NAME
+
+async def get_full_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['full_name'] = update.message.text
+    await update.message.reply_text("Введите username ученика (@username):")
+    return USERNAME
+
+async def get_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['username'] = update.message.text
+    await update.message.reply_text("Введите номер телефона:")
+    return PHONE
+
+async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['phone'] = update.message.text
+    await update.message.reply_text("Введите группу:")
+    return GROUP
+
+async def get_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['group'] = update.message.text
+    await update.message.reply_text("Дата внутреннего экзамена (ГГГГ-ММ-ДД):")
+    return THEORY_INT
+
+async def get_theory_int(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        date = datetime.strptime(update.message.text, "%Y-%m-%d")
+        context.user_data['theory_internal'] = date
+    except ValueError:
+        await update.message.reply_text("❌ Неверный формат даты. Попробуйте снова:")
+        return THEORY_INT
+    await update.message.reply_text("Дата гос. экзамена (ГГГГ-ММ-ДД):")
+    return THEORY_STATE
+
+async def get_theory_state(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        date = datetime.strptime(update.message.text, "%Y-%m-%d")
+        context.user_data['theory_state'] = date
+    except ValueError:
+        await update.message.reply_text("❌ Неверный формат даты. Попробуйте снова:")
+        return THEORY_STATE
+    await update.message.reply_text("Дата практического экзамена (ГГГГ-ММ-ДД):")
+    return PRACTICE
+
+async def get_practice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        date = datetime.strptime(update.message.text, "%Y-%m-%d")
+        context.user_data['practice'] = date
+    except ValueError:
+        await update.message.reply_text("❌ Неверный формат даты. Попробуйте снова:")
+        return PRACTICE
+    await update.message.reply_text("Введите общую информацию:")
+    return INFO
+
+async def get_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['info'] = update.message.text
+    db = next(get_db())
+    try:
+        student = Student(**context.user_data)
+        db.add(student)
+        db.commit()
+        await update.message.reply_text("✅ Ученик успешно добавлен!")
+    except Exception as e:
+        logger.error(f"Ошибка: {e}")
+        await update.message.reply_text("❌ Ошибка при сохранении")
+    context.user_data.clear()
+    return ConversationHandler.END
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❌ Отмена регистрации")
+    context.user_data.clear()
+    return ConversationHandler.END
+
+def get_admin_handler():
+    return [
+        ConversationHandler(
+            entry_points=[CommandHandler("admin", admin_start)],
+            states={
+                ADMIN_AUTH: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_auth)],
+                ADMIN_ACTION: [
+                    CallbackQueryHandler(add_student_start, pattern="^add_student$"),
+                    # ... другие обработчики ...
                 ],
                 FULL_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_full_name)],
                 USERNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_username)],
