@@ -16,9 +16,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Состояния для админ-панели
-ADMIN_AUTH, ADMIN_ACTION, ADD_STUDENT, DELETE_STUDENT = range(4)
+ADMIN_AUTH, ADMIN_MENU = range(2)
 # Состояния для добавления ученика
-FULL_NAME, USERNAME, PHONE, GROUP, THEORY_INT, THEORY_STATE, PRACTICE = range(7)
+FULL_NAME, USERNAME, PHONE, CATEGORY, GROUP, THEORY_INT, THEORY_STATE, PRACTICE = range(8)
+# Состояния для удаления ученика
+DELETE_STUDENT = 8
 
 async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != Config.ADMIN_ID:
@@ -29,54 +31,78 @@ async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ADMIN_AUTH
 
 async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == Config.ADMIN_PASSWORD:
-        keyboard = [
-            [InlineKeyboardButton("Список учеников", callback_data="list_students")],
-            [InlineKeyboardButton("Добавить ученика", callback_data="add_student")],
-            [InlineKeyboardButton("Удалить ученика", callback_data="delete_student")],
-            [InlineKeyboardButton("Назад", callback_data="back_main")]
-        ]
-        await update.message.reply_text(
-            "🔐 Админ-панель:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        return ADMIN_ACTION
-    else:
+    if update.message.text != Config.ADMIN_PASSWORD:
         await update.message.reply_text("❌ Неверный пароль")
         return ConversationHandler.END
+    
+    keyboard = [
+        [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
+        [InlineKeyboardButton("📋 Список учеников", callback_data="list_students")],
+        [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
+        [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
+    ]
+    await update.message.reply_text(
+        "🔐 Админ-панель:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    return ADMIN_MENU
 
 async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.message.reply_text("Введите ФИО ученика:")
+    query = update.callback_query
+    await query.answer()
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await query.edit_message_text(
+        "Введите ФИО ученика:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     return FULL_NAME
 
 async def get_full_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['full_name'] = update.message.text
-    await update.message.reply_text("Введите username ученика (@username):")
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.message.reply_text("Введите username ученика (@username):", reply_markup=InlineKeyboardMarkup(keyboard))
     return USERNAME
 
 async def get_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['username'] = update.message.text
-    await update.message.reply_text("Введите номер телефона:")
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.message.reply_text("Введите номер телефона:", reply_markup=InlineKeyboardMarkup(keyboard))
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['phone'] = update.message.text
-    await update.message.reply_text("Введите группу:")
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.message.reply_text("Введите категорию (A/B):", reply_markup=InlineKeyboardMarkup(keyboard))
+    return CATEGORY
+
+async def get_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['category'] = update.message.text
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.message.reply_text("Введите группу:", reply_markup=InlineKeyboardMarkup(keyboard))
     return GROUP
 
 async def get_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['group'] = update.message.text
-    await update.message.reply_text("Дата внутреннего экзамена (ГГГГ-ММ-ДД):")
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.message.reply_text("Дата внутреннего экзамена (ГГГГ-ММ-ДД):", reply_markup=InlineKeyboardMarkup(keyboard))
     return THEORY_INT
 
 async def get_theory_int(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['theory_internal'] = datetime.strptime(update.message.text, "%Y-%m-%d")
-    await update.message.reply_text("Дата гос. экзамена (ГГГГ-ММ-ДД):")
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.message.reply_text("Дата гос. экзамена (ГГГГ-ММ-ДД):", reply_markup=InlineKeyboardMarkup(keyboard))
     return THEORY_STATE
 
 async def get_theory_state(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['theory_state'] = datetime.strptime(update.message.text, "%Y-%m-%d")
-    await update.message.reply_text("Дата практического экзамена (ГГГГ-ММ-ДД):")
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await update.message.reply_text("Дата практики (ГГГГ-ММ-ДД):", reply_markup=InlineKeyboardMarkup(keyboard))
     return PRACTICE
 
 async def get_practice(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -88,39 +114,58 @@ async def get_practice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.add(student)
     db.commit()
     
-    await update.message.reply_text("✅ Ученик успешно добавлен!")
+    await update.message.reply_text("✅ Ученик добавлен!")
     context.user_data.clear()
-    return ConversationHandler.END
-except Exception as e:
-    logger.error(f"Ошибка: {e}")
-    await update.message.reply_text("❌ Ошибка при сохранении")
+    return await admin_auth(update, context)
 
 async def list_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
     db = next(get_db())
-    students = db.query(Student).all()
+    students = db.query(Student).order_by(Student.group).all()
     
     if not students:
-        await update.callback_query.message.reply_text("Список учеников пуст")
+        await query.message.reply_text("📂 Список учеников пуст")
         return
     
-    text = "📚 Список учеников:\n\n"
+    groups = {}
     for student in students:
-        text += (
-            f"👤 {student.full_name}\n"
-            f"📱 @{student.username}\n"
-            f"📅 Группа: {student.group}\n\n"
-        )
+        if student.group not in groups:
+            groups[student.group] = []
+        groups[student.group].append(student)
     
-    await update.callback_query.message.reply_text(text)
+    text = "📚 Список учеников:\n\n"
+    for group, students_in_group in groups.items():
+        text += f"🏷️ Группа: {group}\n"
+        for student in students_in_group:
+            text += (
+                f"👤 {student.full_name}\n"
+                f"📱 @{student.username} | ☎️ {student.phone}\n"
+                f"📅 Внутренний экзамен: {student.theory_internal.strftime('%d.%m.%Y')}\n"
+                f"🏛️ Гос. экзамен: {student.theory_state.strftime('%d.%m.%Y')}\n"
+                f"🚗 Практика: {student.practice.strftime('%d.%m.%Y')}\n\n"
+            )
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await query.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.message.reply_text("Введите username ученика для удаления:")
+async def delete_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]]
+    await query.message.reply_text("Введите username или телефон ученика:", reply_markup=InlineKeyboardMarkup(keyboard))
     return DELETE_STUDENT
 
 async def confirm_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    username = update.message.text
+    identifier = update.message.text
     db = next(get_db())
-    student = db.query(Student).filter(Student.username == username).first()
+    
+    student = db.query(Student).filter(
+        (Student.username == identifier) | 
+        (Student.phone == identifier)
+    ).first()
     
     if student:
         db.delete(student)
@@ -129,11 +174,17 @@ async def confirm_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ Ученик не найден")
     
-    return ConversationHandler.END
+    return await admin_auth(update, context)
 
-async def admin_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.message.reply_text("Возврат в главное меню")
-    return ConversationHandler.END
+async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data == "back_admin":
+        return await admin_auth(update, context)
+    elif query.data == "back_main":
+        await query.message.reply_text("Возврат в главное меню")
+        return ConversationHandler.END
 
 def get_admin_handler():
     return [
@@ -141,24 +192,51 @@ def get_admin_handler():
             entry_points=[CommandHandler("admin", admin_start)],
             states={
                 ADMIN_AUTH: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_auth)],
-                ADMIN_ACTION: [
-                    CallbackQueryHandler(list_students, pattern="^list_students$"),
+                ADMIN_MENU: [
                     CallbackQueryHandler(add_student_start, pattern="^add_student$"),
-                    CallbackQueryHandler(delete_student, pattern="^delete_student$"),
-                    CallbackQueryHandler(admin_back, pattern="^back_main$")
+                    CallbackQueryHandler(list_students, pattern="^list_students$"),
+                    CallbackQueryHandler(delete_student_start, pattern="^delete_student$"),
+                    CallbackQueryHandler(back_handler, pattern="^back_")
                 ],
-                ADD_STUDENT: [
+                FULL_NAME: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, get_full_name),
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_username),
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone),
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_group),
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_theory_int),
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_theory_state),
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_practice)
+                    CallbackQueryHandler(back_handler, pattern="^back_admin$")
                 ],
-                DELETE_STUDENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_delete)]
+                USERNAME: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_username),
+                    CallbackQueryHandler(back_handler, pattern="^back_admin$")
+                ],
+                PHONE: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone),
+                    CallbackQueryHandler(back_handler, pattern="^back_admin$")
+                ],
+                CATEGORY: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_category),
+                    CallbackQueryHandler(back_handler, pattern="^back_admin$")
+                ],
+                GROUP: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_group),
+                    CallbackQueryHandler(back_handler, pattern="^back_admin$")
+                ],
+                THEORY_INT: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_theory_int),
+                    CallbackQueryHandler(back_handler, pattern="^back_admin$")
+                ],
+                THEORY_STATE: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_theory_state),
+                    CallbackQueryHandler(back_handler, pattern="^back_admin$")
+                ],
+                PRACTICE: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, get_practice),
+                    CallbackQueryHandler(back_handler, pattern="^back_admin$")
+                ],
+                DELETE_STUDENT: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_delete),
+                    CallbackQueryHandler(back_handler, pattern="^back_admin$")
+                ]
             },
-            fallbacks=[CommandHandler("cancel", admin_back)],
+            fallbacks=[CommandHandler("cancel", back_handler)],
+            per_chat=True,
             per_user=True
         )
     ]
