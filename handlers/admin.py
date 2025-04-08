@@ -55,6 +55,7 @@ async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         "Введите ФИО ученика:",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return FULL_NAME
 
 async def get_full_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
