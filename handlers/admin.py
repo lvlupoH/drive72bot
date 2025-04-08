@@ -91,6 +91,9 @@ async def get_practice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Ученик успешно добавлен!")
     context.user_data.clear()
     return ConversationHandler.END
+except Exception as e:
+    logger.error(f"Ошибка: {e}")
+    await update.message.reply_text("❌ Ошибка при сохранении")
 
 async def list_students(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db = next(get_db())
