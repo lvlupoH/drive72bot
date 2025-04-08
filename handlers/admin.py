@@ -162,7 +162,7 @@ def get_admin_handler():
                     MessageHandler(filters.TEXT & ~filters.COMMAND, get_practice)
                 ]
             },
-            fallbacks=[CommandHandler("cancel", admin_cancel)],
+            fallbacks=[CommandHandler("cancel", admin_back)],
             per_user=True
         )
     ]
