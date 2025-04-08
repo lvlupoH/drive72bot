@@ -8,8 +8,8 @@ class Student(Base):
     full_name = Column(String(100))
     username = Column(String(50), unique=True)
     phone = Column(String(20))
+    category = Column(String(20))
     group = Column(String(50))
     theory_internal = Column(Date)
     theory_state = Column(Date)
     practice = Column(Date)
-    info = Column(String(500))  # Общая информация
