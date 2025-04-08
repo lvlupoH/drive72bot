@@ -5,7 +5,9 @@ from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    ContextTypes
+    ContextTypes,
+    MessageHandler,
+    filters
 )
 from config import Config
 from handlers.categories import handle_categories, show_packages
@@ -13,8 +15,9 @@ from handlers.callbacks import setup_callbacks_handler
 from handlers.admin import get_admin_handler
 from handlers.gallery import show_gallery
 from handlers.instructors import show_instructors
-from handlers.profile import get_profile_handler
+from handlers.profile import show_profile
 
+# Настройка логгера
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
@@ -22,6 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /start"""
     keyboard = [
         [{"text": "Категории", "callback_data": "categories"}],
         [{"text": "Обратный звонок", "callback_data": "callback_request"}],
@@ -30,28 +34,37 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [{"text": "Личный кабинет", "callback_data": "profile"}]
     ]
     await update.message.reply_text(
-        "Добро пожаловать в Drive!",
+        "🚗 Добро пожаловать в автошколу Drive!",
         reply_markup={"inline_keyboard": keyboard}
     )
 
 async def post_init(application):
+    """Пост-инициализация приложения"""
     await asyncio.sleep(5)
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
+    """Точка входа в приложение"""
     config = Config()
     application = Application.builder().token(config.TELEGRAM_TOKEN).post_init(post_init).build()
     
+    # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(show_gallery, pattern="^gallery$"))
     application.add_handler(CallbackQueryHandler(show_instructors, pattern="^instructors$"))
+    application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
     application.add_handler(setup_callbacks_handler())
     
-    for handler in get_admin_handler() + get_profile_handler():
+    # Админ-панель и профиль
+    for handler in get_admin_handler():
         application.add_handler(handler)
     
+    # Обработчик кнопки "Назад"
+    application.add_handler(CallbackQueryHandler(show_profile, pattern=r"^back_"))
+    
+    # Запуск вебхука
     application.run_webhook(
         listen="0.0.0.0",
         port=config.PORT,
