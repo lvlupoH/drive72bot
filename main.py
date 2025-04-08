@@ -56,15 +56,20 @@ def main():
     application.add_handler(setup_callbacks_handler())
     
     # Админ-панель и профиль
+    from handlers.admin import get_admin_handler
+from handlers.profile import get_profile_handler
+
+def main():
+    application = Application.builder().token(Config.TELEGRAM_TOKEN).build()
+    
+    # Регистрация обработчиков
     for handler in get_admin_handler() + get_profile_handler():
         application.add_handler(handler)
     
-    application.add_handler(CallbackQueryHandler(back_handler, pattern=r"^back_"))
-    
     application.run_webhook(
         listen="0.0.0.0",
-        port=config.PORT,
-        webhook_url=config.WEBHOOK_URL
+        port=Config.PORT,
+        webhook_url=Config.WEBHOOK_URL
     )
 
 if __name__ == "__main__":
