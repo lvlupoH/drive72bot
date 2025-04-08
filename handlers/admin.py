@@ -156,6 +156,8 @@ def get_admin_handler():
                 DELETE_STUDENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, confirm_delete)]
             },
             fallbacks=[CommandHandler("cancel", admin_back)],
+            per_message=True,  # <-- Добавлено
+            per_chat=True,
             per_user=True
         )
     ]
