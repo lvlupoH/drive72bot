@@ -1,9 +1,16 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, CallbackQueryHandler
 from .categories import handle_categories
 from .instructors import show_instructors
 from .gallery import show_gallery
 from .callbacks import start_callback
+
+
+async def back_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text("Возврат в админ-панель")
+    return "ADMIN_MENU"
 
 async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -38,3 +45,6 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_gallery(update, context)
     
     return
+    
+
+
