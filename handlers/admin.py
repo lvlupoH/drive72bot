@@ -30,20 +30,24 @@ async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.text == Config.ADMIN_PASSWORD:
+        # Успешная авторизация
+        context.user_data["admin_auth"] = True  # Сохраняем статус
+        
+        # Показываем меню админ-панели
         keyboard = [
-            [InlineKeyboardButton("Список учеников", callback_data="list_students")],
             [InlineKeyboardButton("Добавить ученика", callback_data="add_student")],
-            [InlineKeyboardButton("Удалить ученика", callback_data="delete_student")],
+            [InlineKeyboardButton("Список учеников", callback_data="list_students")],
             [InlineKeyboardButton("Назад", callback_data="back_main")]
         ]
         await update.message.reply_text(
             "🔐 Админ-панель:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
-        return ADMIN_ACTION
+        return ADMIN_ACTION  # Переход в состояние ADMIN_ACTION
+        
     else:
         await update.message.reply_text("❌ Неверный пароль")
-        return ConversationHandler.END
+        return ConversationHandler.END  # Завершаем диалог
 
 async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.message.reply_text("Введите ФИО ученика:")
