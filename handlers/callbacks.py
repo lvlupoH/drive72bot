@@ -84,12 +84,17 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def setup_callbacks_handler():
     return ConversationHandler(
-        entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
+        entry_points=[
+            CallbackQueryHandler(start_callback, pattern="^callback_request$")
+        ],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
-        per_message=False  # Отключено для MessageHandler
+        fallbacks=[CommandHandler('cancel', cancel)],
+        per_message=True,  # <-- Добавлено
+        per_chat=True,
+        per_user=True
     )
+    
