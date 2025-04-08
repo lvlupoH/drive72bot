@@ -50,8 +50,12 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END  # Завершаем диалог
 
 async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.message.reply_text("Введите ФИО ученика:")
-    return FULL_NAME
+    if not context.user_data.get("admin_auth"):
+        await update.message.reply_text("❌ Требуется авторизация")
+        return ConversationHandler.END
+        
+    await update.message.reply_text("Введите ФИО ученика:")
+    return FULL_NAME  # Следующее состояние
 
 async def get_full_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['full_name'] = update.message.text
