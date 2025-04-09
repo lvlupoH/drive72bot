@@ -38,6 +38,7 @@ async def post_init(application):
 def main():
     config = Config()
     application = Application.builder().token(config.TELEGRAM_TOKEN).post_init(post_init).build()
+    application = Application.builder().token(config.TELEGRAM_TOKEN).post_init(post_init).arbitrary_callback_data(False).build()
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
