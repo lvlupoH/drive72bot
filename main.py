@@ -1,26 +1,18 @@
 import logging
 import asyncio
 from telegram import Update
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    CallbackQueryHandler,
-    ContextTypes,
-    MessageHandler,
-    filters
-)
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from config import Config
-from handlers.categories import handle_categories, show_packages
-from handlers.callbacks import setup_callbacks_handler
-from handlers.admin import get_admin_handler
-from handlers.gallery import show_gallery
-from handlers.instructors import show_instructors
-from handlers.profile import show_profile
+from handlers import categories, callbacks, admin, gallery, instructors
 
-# Настройка логгера
+# Настройка логов
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler("bot.log"),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -44,27 +36,20 @@ async def post_init(application):
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    """Точка входа в приложение"""
     config = Config()
-    application = Application.builder().token(config.TELEGRAM_TOKEN).post_init(post_init).build()
+    application = Application.builder().token(config.TELEGRAM_TOKEN).build()
     
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
-    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
-    application.add_handler(CallbackQueryHandler(show_gallery, pattern="^gallery$"))
-    application.add_handler(CallbackQueryHandler(show_instructors, pattern="^instructors$"))
-    application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
-    application.add_handler(setup_callbacks_handler())
+    application.add_handler(callbacks.setup_callbacks_handler())
+    application.add_handler(admin.get_admin_handler())
     
-    # Админ-панель и профиль
-    for handler in get_admin_handler():
-        application.add_handler(handler)
+    # Защита от несанкционированных команд
+    application.add_handler(MessageHandler(
+        filters.COMMAND & ~filters.Regex(r'^/(start|admin|cancel)$'), 
+        lambda u,c: u.message.reply_text("⚠️ Неизвестная команда!")
+    ))
     
-    # Обработчик кнопки "Назад"
-    application.add_handler(CallbackQueryHandler(show_profile, pattern=r"^back_"))
-    
-    # Запуск вебхука
     application.run_webhook(
         listen="0.0.0.0",
         port=config.PORT,
