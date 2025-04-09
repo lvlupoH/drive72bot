@@ -34,6 +34,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def post_init(application):
     await asyncio.sleep(5)
     await application.bot.set_webhook(Config.WEBHOOK_URL)
+async def post_init(application):
+    logger.info("=== Бот запущен с чистым токеном ===")
+    # Отправка уведомления администратору
+    await application.bot.send_message(
+        chat_id=Config.ADMIN_ID, 
+        text="✅ Бот перезапущен с новым токеном"
+    )
 
 def main():
     config = Config()
