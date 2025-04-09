@@ -4,7 +4,7 @@ from telegram.ext import (
     ConversationHandler,
     CommandHandler,
     MessageHandler,
-    CallbackQueryHandler,  # Добавьте эту строку
+    CallbackQueryHandler,
     filters
 )
 from config import Config
@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 ADMIN_AUTH, ADMIN_2FA, ADMIN_ACTION = range(3)
-ADMIN_2FA_CODE = "123456"  # Генерируйте динамически на практике!
+ADMIN_2FA_CODE = "123456"
 
 async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != Config.ADMIN_ID:
@@ -55,5 +55,6 @@ def get_admin_handler():
             ADMIN_2FA: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_2fa)],
             ADMIN_ACTION: [CallbackQueryHandler(admin_exit, pattern="^admin_exit$")]
         },
-        fallbacks=[CommandHandler("cancel", admin_exit)]
+        fallbacks=[CommandHandler("cancel", admin_exit)],
+        per_message=True  # Решает проблему с предупреждением PTBUserWarning
     )
