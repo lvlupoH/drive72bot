@@ -48,7 +48,7 @@ async def admin_exit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 def get_admin_handler():
-    return ConversationHandler(
+    return [ConversationHandler(
         entry_points=[CommandHandler("admin", admin_start)],
         states={
             ADMIN_AUTH: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_auth)],
@@ -56,5 +56,5 @@ def get_admin_handler():
             ADMIN_ACTION: [CallbackQueryHandler(admin_exit, pattern="^admin_exit$")]
         },
         fallbacks=[CommandHandler("cancel", admin_exit)],
-        per_message=True  # Решает проблему с предупреждением PTBUserWarning
-    )
+        per_message=False  # Исправлено
+    )]
