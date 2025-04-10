@@ -1,8 +1,7 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
 from config import Config
 import logging
-import requests
 import traceback
 
 logger = logging.getLogger(__name__)
@@ -29,9 +28,11 @@ async def instructors_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         ]
         keyboard.append([InlineKeyboardButton("◀️ Назад", callback_data="back_main")])
         
+        # Исправлено: добавлены закрывающие скобки
         await query.edit_message_text(
             text="🏁 Наши инструкторы:",
             reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     
     except Exception as e:
         logger.error(f"Ошибка: {str(e)}\n{traceback.format_exc()}")
