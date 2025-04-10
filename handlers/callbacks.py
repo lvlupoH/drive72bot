@@ -79,16 +79,12 @@ async def send_callback_email(name: str, phone: str, question: str, username: st
 def setup_callbacks_handler():
     return ConversationHandler(
         entry_points=[
-            MessageHandler(
-                filters.Regex(r'^(Обратный звонок|Дополнительные занятия)$'), 
-                start_callback
-            )
+            MessageHandler(filters.Regex(r'^(Обратный звонок|Дополнительные занятия)$'), start_callback)
         ],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
-        allow_reentry=True
+        fallbacks=[CommandHandler('cancel', cancel)]
     )
