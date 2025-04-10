@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 
 CATEGORIES = {
     "cat_a": {
+        "title": "Категория А, А1",
         "packages": {
             "МОТО1": {"price": 10000, "desc": "Базовый курс"},
             "МОТО2": {"price": 15000, "desc": "Продвинутый курс"},
@@ -11,6 +12,7 @@ CATEGORIES = {
         }
     },
     "cat_b": {
+        "title": "Категория В",
         "packages": {
             "АВТО1": {"price": 20000, "desc": "Начальный уровень"},
             "АВТО2": {"price": 25000, "desc": "Полный курс"},
@@ -20,21 +22,40 @@ CATEGORIES = {
     }
 }
 
-async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    category = query.data
+    await query.answer()
     
-    buttons = [
-        [InlineKeyboardButton(
-            f"{name} - {data['price']}₽ | {data['desc']}", 
-            callback_data=f"package_{name}"
-        )] for name, data in CATEGORIES[category]['packages'].items()
+    keyboard = [
+        [InlineKeyboardButton("Категория А, А1", callback_data="cat_a")],
+        [InlineKeyboardButton("Категория В", callback_data="cat_b")],
+        [InlineKeyboardButton("Назад", callback_data="back_main")]
     ]
     
-    buttons.append([InlineKeyboardButton("💳 Оплатить", url="https://driveavto72.ru/contacts")])
+    await query.edit_message_text(
+        text="Выберите категорию:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    category = query.data
+    
+    packages = CATEGORIES[category]["packages"]
+    buttons = []
+    
+    for name, data in packages.items():
+        btn = InlineKeyboardButton(
+            f"{name} - {data['price']}₽ | {data['desc']}",
+            callback_data=f"package_{name}"
+        )
+        buttons.append([btn])
+    
+    buttons.append([InlineKeyboardButton("💳 Оплатить онлайн", url="https://driveavto72.ru/contacts")])
     buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_categories")])
     
     await query.edit_message_text(
-        text=f"{CATEGORIES[category]['title']}\nВыберите пакет:",
+        text=f"{CATEGORIES[category]['title']}\n\nВыберите пакет:",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
