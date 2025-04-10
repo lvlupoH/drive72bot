@@ -5,108 +5,49 @@ from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    ContextTypes,
-    MessageHandler,
-    filters
+    ContextTypes
 )
 from config import Config
-from handlers.start import start_menu
-from handlers.categories import handle_categories, show_packages
-from handlers.callbacks import get_callback_handlers
-from handlers.extra import get_extra_handler
-from handlers.instructors import get_instructors_handlers
-from handlers.gallery import get_gallery_handlers
-from handlers.admin import get_admin_handlers
-from handlers.back import get_back_handler
-from handlers.profile import handle_profile
+from handlers import (
+    categories,
+    callbacks,
+    back,
+    admin,
+    gallery
+)
 
-# Настройка логирования
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-    handlers=[
-        logging.FileHandler("bot.log"),
-        logging.StreamHandler()
-    ]
+    level=logging.INFO
 )
-logger = logging.getLogger(__name__)
 
-async def post_init(application):
-    """Пост-инициализация для вебхука"""
-    await asyncio.sleep(2)
-    if Config.ENV == "production":
-        await application.bot.set_webhook(
-            url=Config.WEBHOOK_URL,
-            certificate=open('ssl_cert.pem', 'rb') if Config.ENV == "production" else None
-        )
-        logger.info("Webhook установлен: %s", Config.WEBHOOK_URL)
-
-async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Глобальный обработчик ошибок"""
-    logger.error("Ошибка: %s", context.error, exc_info=True)
-    if update.effective_message:
-        await update.effective_message.reply_text("⚠️ Произошла ошибка. Попробуйте позже.")
-
-def register_handlers(application):
-    """Регистрация всех обработчиков"""
-    # Основные команды
-    application.add_handler(CommandHandler("start", start_menu))
-
-    # Категории и пакеты
-    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
-    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
-
-    # Обратные звонки и доп. занятия
-    for handler in get_callback_handlers():
-        application.add_handler(handler)
-    application.add_handler(get_extra_handler())
-
-    # Инструкторы и галерея
-    for handler in get_instructors_handlers():
-        application.add_handler(handler)
-    for handler in get_gallery_handlers():
-        application.add_handler(handler)
-
-    # Админ-панель
-    for handler in get_admin_handlers():
-        application.add_handler(handler)
-
-    # Личный кабинет
-    application.add_handler(CallbackQueryHandler(handle_profile, pattern="^profile$"))
-
-    # Навигация "Назад"
-    application.add_handler(get_back_handler())
-
-    # Обработка ошибок
-    application.add_error_handler(error_handler)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [{"text": "Категории", "callback_data": "categories"}],
+        [{"text": "Обратный звонок", "callback_data": "callback_request"}],
+        [{"text": "Галерея", "callback_data": "gallery"}],
+        [{"text": "Личный кабинет", "callback_data": "profile"}]
+    ]
+    await update.message.reply_text(
+        "🏎️ Добро пожаловать в Drive72!",
+        reply_markup={"inline_keyboard": keyboard}
+    )
 
 def main():
-    """Точка входа"""
-    try:
-        logger.info("Запуск бота...")
-        
-        application = Application.builder() \
-            .token(Config.TELEGRAM_TOKEN) \
-            .post_init(post_init) \
-            .build()
-
-        register_handlers(application)
-
-        # Режим запуска
-        if Config.ENV == "production":
-            application.run_webhook(
-                listen="0.0.0.0",
-                port=Config.PORT,
-                webhook_url=Config.WEBHOOK_URL,
-                key="private.key",
-                cert="cert.pem"
-            )
-        else:
-            application.run_polling()
-
-    except Exception as e:
-        logger.critical("Критическая ошибка: %s", str(e))
-        raise
+    app = Application.builder().token(Config.TELEGRAM_TOKEN).build()
+    
+    # Регистрация обработчиков
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
+    app.add_handler(CallbackQueryHandler(gallery.handle_gallery, pattern="^gallery$"))
+    app.add_handler(callbacks.setup_callbacks_handler())
+    app.add_handlers(admin.get_admin_handler())
+    
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=Config.PORT,
+        webhook_url=Config.WEBHOOK_URL
+    )
 
 if __name__ == "__main__":
     main()
