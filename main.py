@@ -59,16 +59,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-    
-from handlers.back import back_handler  # Добавьте этот импорт
-
-# ... остальной код ...
-
-def main():
-    app = Application.builder().token(Config.TELEGRAM_TOKEN).build()
-    
-    # Добавьте обработчик для кнопок "back_"
-    app.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
-    
-    # ... остальные обработчики ...
