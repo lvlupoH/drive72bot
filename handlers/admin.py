@@ -7,7 +7,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     filters
 )
-from .back import back_handler  # Добавлен импорт
+from handlers.back import back_handler  # ✅ Правильный импорт
 from config import Config
 import hashlib
 import psycopg2
