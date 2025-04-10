@@ -81,7 +81,7 @@ def setup_callbacks_handler():
         entry_points=[
             MessageHandler(filters.Regex(r'^(Обратный звонок|Дополнительные занятия)$'), 
             start_callback
-        ],
+        ),
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
