@@ -147,34 +147,3 @@ def get_admin_handler():
         )
     ]
     
-
-
-
-
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ContextTypes,
-    ConversationHandler,
-    MessageHandler,
-    CommandHandler,
-    CallbackQueryHandler,
-    filters
-)
-from .back import back_handler  # Добавлен импорт
-from config import Config
-import hashlib
-import psycopg2
-import logging
-
-# ... остальной код без изменений ...
-
-def get_admin_handler():
-    return [
-        ConversationHandler(
-            entry_points=[CommandHandler('admin', admin_start)],
-            states={
-                # ... состояния ...
-            },
-            fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")]
-        )
-    ]
