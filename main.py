@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
-    CallbackQueryHandler,
+    CallbackQueryHandler,  # Убедитесь, что импортирован
     ContextTypes
 )
 from config import Config
