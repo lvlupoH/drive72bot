@@ -16,6 +16,7 @@ from handlers import (
     gallery,
     contacts
 )
+from handlers.back import back_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -45,6 +46,7 @@ def main():
     
     # Регистрация всех обработчиков
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
     app.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
     app.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
     app.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
