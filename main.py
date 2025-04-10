@@ -12,6 +12,7 @@ from handlers.categories import handle_categories, show_packages  # Явный �
 from handlers.callbacks import setup_callbacks_handler
 from handlers.gallery import handle_gallery
 from handlers.admin import get_admin_handler
+from handlers.back import back_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -37,8 +38,10 @@ async def post_init(application):
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    app = Application.builder().token(Config.TELEGRAM_TOKEN).post_init(post_init).build()
+    app = Application.builder().token(Config.TELEGRAM_TOKEN).build()
     
+    # Добавьте обработчик для кнопок "back_"
+    app.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
     # Регистрация обработчиков
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
@@ -46,6 +49,7 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_gallery, pattern="^gallery$"))
     app.add_handler(setup_callbacks_handler())
     app.add_handlers(get_admin_handler())
+    
     
     app.run_webhook(
         listen="0.0.0.0",
@@ -55,3 +59,16 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
+    
+from handlers.back import back_handler  # Добавьте этот импорт
+
+# ... остальной код ...
+
+def main():
+    app = Application.builder().token(Config.TELEGRAM_TOKEN).build()
+    
+    # Добавьте обработчик для кнопок "back_"
+    app.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
+    
+    # ... остальные обработчики ...
