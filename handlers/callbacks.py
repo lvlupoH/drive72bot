@@ -16,57 +16,47 @@ from datetime import datetime
 NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
 
-# --- Обработчики шагов ---
+# ---- Обработчики шагов ----
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Начало диалога"""
-    await update.message.reply_text(
-        "📞 Введите ваше ФИО:",
-        reply_markup=ReplyKeyboardRemove()
-    )
+    await update.message.reply_text("📞 Введите ваше ФИО:", reply_markup=ReplyKeyboardRemove())
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Сохраняем имя и запрашиваем телефон"""
     context.user_data['name'] = update.message.text
     await update.message.reply_text("📱 Введите ваш номер телефона:")
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Сохраняем телефон и запрашиваем вопрос"""
     context.user_data['phone'] = update.message.text
     await update.message.reply_text("❓ Введите ваш вопрос:")
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Финализация и отправка email"""
     user = update.message.from_user
     context.user_data['question'] = update.message.text
     
     try:
-        # Отправка email
         await send_callback_email(
             name=context.user_data['name'],
             phone=context.user_data['phone'],
             question=context.user_data['question'],
             username=user.username
         )
-        await update.message.reply_text("✅ Данные отправлены администратору!")
+        await update.message.reply_text("✅ Данные отправлены!")
     except Exception as e:
-        logger.error(f"Ошибка отправки: {e}")
+        logger.error(f"Ошибка: {e}")
         await update.message.reply_text("❌ Ошибка отправки!")
-
+    
     context.user_data.clear()
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена диалога"""
     await update.message.reply_text("🚫 Запрос отменен")
     context.user_data.clear()
     return ConversationHandler.END
 
-# --- Вспомогательные функции ---
+# ---- Вспомогательные функции ----
 async def send_callback_email(name: str, phone: str, question: str, username: str):
-    """Отправка email через SMTP"""
     body = f"""
     Новый запрос:
     Имя: {name}
@@ -85,18 +75,18 @@ async def send_callback_email(name: str, phone: str, question: str, username: st
         server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
         server.send_message(msg)
 
-# --- Настройка обработчика ---
-async def start_extra(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🏫 Дополнительные занятия\n\nВведите ваше ФИО:",
-        reply_markup=ReplyKeyboardRemove()
-    )
-    return NAME
-
+# ---- Настройка обработчика ----
 def setup_callbacks_handler():
     return ConversationHandler(
         entry_points=[
-            MessageHandler(filters.Regex(r'^Обратный звонок$'), start_callback),
-            MessageHandler(filters.Regex(r'^Дополнительные занятия$'), start_extra)
+            MessageHandler(filters.Regex(r'^(Обратный звонок|Дополнительные занятия)$'), 
+            start_callback
         ],
+        states={
+            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
+            PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
+            QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+        allow_reentry=True
     )
