@@ -4,8 +4,7 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler,
     filters,
-    CommandHandler,
-    CallbackQueryHandler  # Добавлен недостающий импорт
+    CommandHandler
 )
 from config import Config
 import smtplib
@@ -17,13 +16,20 @@ from datetime import datetime
 NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
 
-async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📞 Введите ваше ФИО:", reply_markup=ReplyKeyboardRemove())
+# Общий обработчик для обоих типов запросов
+async def start_request(update: Update, context: ContextTypes.DEFAULT_TYPE, request_type: str):
+    context.user_data['request_type'] = request_type
+    await update.message.reply_text(
+        f"📝 {request_type}\n\nВведите ваше ФИО:",
+        reply_markup=ReplyKeyboardRemove()
+    )
     return NAME
 
-async def start_extra(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🏫 Введите ваше ФИО:", reply_markup=ReplyKeyboardRemove())
-    return NAME
+async def callback_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return await start_request(update, context, "Обратный звонок")
+
+async def extra_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return await start_request(update, context, "Дополнительные занятия")
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['name'] = update.message.text
@@ -38,30 +44,16 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
     context.user_data['question'] = update.message.text
-    request_type = "Обратный звонок" if "callback" in context.user_data else "Доп. занятия"
     
     try:
-        # Отправка email
         await send_email(
-            request_type=request_type,
+            request_type=context.user_data['request_type'],
             name=context.user_data['name'],
             phone=context.user_data['phone'],
             question=context.user_data['question'],
             username=user.username
         )
-        
-        # Запись в БД (пример для PostgreSQL)
-        conn = psycopg2.connect(Config.DATABASE_URL)
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO requests (type, name, phone, question, username)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (request_type, context.user_data['name'], 
-             context.user_data['phone'], context.user_data['question'], user.username))
-        conn.commit()
-        conn.close()
-        
-        await update.message.reply_text("✅ Данные отправлены!")
+        await update.message.reply_text("✅ Данные отправлены администратору!")
     except Exception as e:
         logger.error(f"Ошибка: {e}")
         await update.message.reply_text("❌ Ошибка отправки!")
@@ -96,9 +88,9 @@ async def send_email(request_type: str, name: str, phone: str, question: str, us
 def setup_callbacks_handler():
     return ConversationHandler(
         entry_points=[
-            CallbackQueryHandler(start_callback, pattern="^callback_request$"),
-            CallbackQueryHandler(start_extra, pattern="^extra_classes$"),
-            MessageHandler(filters.Regex(r'^☎️ Заказать звонок$'), start_callback)
+            CallbackQueryHandler(callback_start, pattern="^callback_request$"),
+            CallbackQueryHandler(extra_start, pattern="^extra_classes$"),
+            CallbackQueryHandler(callback_start, pattern="^contacts_callback$")
         ],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
