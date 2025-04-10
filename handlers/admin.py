@@ -7,10 +7,10 @@ from telegram.ext import (
     CallbackQueryHandler,
     filters
 )
+from .back import back_handler  # Добавлен импорт
 from config import Config
 import hashlib
 import psycopg2
-from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -142,6 +142,38 @@ def get_admin_handler():
                 ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, process_exam_theory)],
                 ADD_EXAM_GOS: [MessageHandler(filters.TEXT, process_exam_gos)],
                 ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, process_exam_practice)]
+            },
+            fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")]
+        )
+    ]
+    
+
+
+
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    CommandHandler,
+    CallbackQueryHandler,
+    filters
+)
+from .back import back_handler  # Добавлен импорт
+from config import Config
+import hashlib
+import psycopg2
+import logging
+
+# ... остальной код без изменений ...
+
+def get_admin_handler():
+    return [
+        ConversationHandler(
+            entry_points=[CommandHandler('admin', admin_start)],
+            states={
+                # ... состояния ...
             },
             fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")]
         )
