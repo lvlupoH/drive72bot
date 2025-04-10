@@ -86,15 +86,17 @@ async def send_callback_email(name: str, phone: str, question: str, username: st
         server.send_message(msg)
 
 # --- Настройка обработчика ---
-def setup_callbacks_handler() -> ConversationHandler:
+async def start_extra(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "🏫 Дополнительные занятия\n\nВведите ваше ФИО:",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    return NAME
+
+def setup_callbacks_handler():
     return ConversationHandler(
         entry_points=[
-            MessageHandler(filters.Regex(r'^(Обратный звонок|Дополнительные занятия)$'), start_callback)
+            MessageHandler(filters.Regex(r'^Обратный звонок$'), start_callback),
+            MessageHandler(filters.Regex(r'^Дополнительные занятия$'), start_extra)
         ],
-        states={
-            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
-            PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
-            QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
-        },
-        fallbacks=[CommandHandler('cancel', cancel)]
     )
