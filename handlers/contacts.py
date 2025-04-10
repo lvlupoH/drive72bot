@@ -8,7 +8,9 @@ async def handle_contacts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📍 Филиал 1", url="https://2gis.ru/tyumen/geo/70000001019159851")],
         [InlineKeyboardButton("📍 Филиал 2", url="https://2gis.ru/tyumen/geo/1830115629746447")],
-        [InlineKeyboardButton("☎️ Заказать звонок", callback_data="callback_request")],
+        [InlineKeyboardButton("📍 Филиал 3", url="https://2gis.ru/tyumen/geo/70000001044540338")],
+        [InlineKeyboardButton("📍 Филиал 4", url="https://2gis.ru/tyumen/geo/1830115629789564")],
+        [InlineKeyboardButton("☎️ Заказать звонок", callback_data="contacts_callback")],
         [InlineKeyboardButton("🌐 Сайт", url="https://driveavto72.ru")],
         [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
     ]
