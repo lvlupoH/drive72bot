@@ -44,6 +44,7 @@ async def extra_get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "📱 Введите ваш контактный номер телефона:",
             reply_markup=InlineKeyboardMarkup(CANCEL_KEYBOARD)
+        )
         return PHONE
     except Exception as e:
         logger.error(f"Name error: {str(e)}\n{traceback.format_exc()}")
