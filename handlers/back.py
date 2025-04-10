@@ -20,6 +20,7 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "🏎️ Главное меню:",
             reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     
     # Возврат к категориям
     elif data == 'categories':
@@ -30,4 +31,7 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         await query.edit_message_text(
             "Выберите категорию:",
-            reply_markup=InlineKeyboardMarkup(keyboard))
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    
+    return
