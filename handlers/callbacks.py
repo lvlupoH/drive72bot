@@ -50,6 +50,7 @@ async def start_extra(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🎓 Запрос на дополнительные занятия\n\n"
             "Введите ваше ФИО:",
             reply_markup=InlineKeyboardMarkup(CANCEL_KEYBOARD)
+        )
         return NAME
     except Exception as e:
         logger.error(f"Ошибка в start_extra: {str(e)}\n{traceback.format_exc()}")
