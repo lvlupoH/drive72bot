@@ -71,7 +71,7 @@ async def show_instructor(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption=caption,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("◀️ К списку инструкторов", callback_data="instructors")]
-            )
+            ]
         )
     except Exception as e:
         logger.error(f"Ошибка в show_instructor: {str(e)}\n{traceback.format_exc()}")
