@@ -51,8 +51,9 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    
     context.user_data['student'] = {}
-    await query.edit_message_text("Введите username ученика (@username):")
+    await query.message.reply_text("Введите username ученика (@username):")
     return ADD_USERNAME
 
 async def process_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -146,4 +147,3 @@ def get_admin_handler():
             fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")]
         )
     ]
-    
