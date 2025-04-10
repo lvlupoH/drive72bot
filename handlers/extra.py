@@ -10,7 +10,6 @@ from telegram.ext import (
 from config import Config
 from database import save_extra
 import logging
-import traceback
 from datetime import datetime
 
 # Состояния диалога
@@ -83,9 +82,6 @@ async def extra_get_question(update: Update, context: ContextTypes.DEFAULT_TYPE)
             'type': 'extra'
         })
 
-        # Отправка email
-        await send_extra_email(context.user_data)
-        
         await update.message.reply_text("✅ Заявка принята! Мы свяжемся с вами для уточнения деталей.")
         return ConversationHandler.END
 
@@ -93,34 +89,6 @@ async def extra_get_question(update: Update, context: ContextTypes.DEFAULT_TYPE)
         logger.error(f"Question error: {str(e)}\n{traceback.format_exc()}")
         await update.message.reply_text("❌ Ошибка обработки запроса")
         return ConversationHandler.END
-
-async def send_extra_email(data: dict):
-    """Отправка email администратору"""
-    try:
-        body = f"""
-        Новая заявка на дополнительные занятия!
-        
-        👤 Пользователь: @{data['username']} 
-        🆔 ID: {data['user_id']}
-        📛 ФИО: {data['name']}
-        📱 Телефон: {data['phone']}
-        📅 Дата: {data['date'].strftime("%d.%m.%Y %H:%M")}
-        ❔ Запрос: 
-        {data['question']}
-        """
-        
-        msg = MIMEText(body.strip())
-        msg['Subject'] = f"🎓 Новые занятия: {data['name']}"
-        msg['From'] = Config.EMAIL_USER
-        msg['To'] = Config.ADMIN_EMAIL
-
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
-            server.send_message(msg)
-            
-    except Exception as e:
-        logger.error(f"Email error: {str(e)}\n{traceback.format_exc()}")
-        raise
 
 async def cancel_extra(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка отмены"""
