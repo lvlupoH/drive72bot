@@ -5,24 +5,25 @@ from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    ContextTypes
+    ContextTypes,
+    ConversationHandler
 )
 from config import Config
-from handlers import (
-    categories,
-    callbacks,
-    back,
-    admin,
-    gallery,
-    contacts
-)
+from handlers.categories import handle_categories, show_packages
+from handlers.callbacks import setup_callbacks_handler
 from handlers.back import back_handler
+from handlers.admin import get_admin_handler
+from handlers.gallery import handle_gallery
+from handlers.contacts import handle_contacts
 
+# Настройка логгера
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
+logger = logging.getLogger(__name__)
 
+# Обработчик команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [{"text": "Категории", "callback_data": "categories"}],
@@ -33,34 +34,35 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [{"text": "Личный кабинет", "callback_data": "profile"}]
     ]
     await update.message.reply_text(
-        "🏎️ Добро пожаловать в Drive72!",
+        "🏎️ Добро пожаловать в автошколу Drive72!",
         reply_markup={"inline_keyboard": keyboard}
     )
 
+# Пост-инициализация для вебхука
 async def post_init(application):
     await asyncio.sleep(5)
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    app = Application.builder().token(Config.TELEGRAM_TOKEN).build()
-    
-    # Регистрация всех обработчиков
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
-    app.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
-    app.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
-    app.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
-    app.add_handler(CallbackQueryHandler(gallery.handle_gallery, pattern="^gallery$"))
-    app.add_handler(CallbackQueryHandler(contacts.handle_contacts, pattern="^contacts$"))
-    app.add_handler(callbacks.setup_callbacks_handler())
-    app.add_handlers(admin.get_admin_handler())
-    
-    app.run_polling()
-    
-    app.run_webhook(
+    config = Config()
+    application = Application.builder().token(config.TELEGRAM_TOKEN).post_init(post_init).build()
+
+    # Регистрация обработчиков
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
+    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
+    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
+    application.add_handler(CallbackQueryHandler(handle_gallery, pattern="^gallery$"))
+    application.add_handler(CallbackQueryHandler(handle_contacts, pattern="^contacts$"))
+    application.add_handler(setup_callbacks_handler())
+    application.add_handlers(get_admin_handler())
+
+    # Запуск бота (для Render используйте webhook)
+    application.run_webhook(
         listen="0.0.0.0",
-        port=Config.PORT,
-        webhook_url=Config.WEBHOOK_URL
+        port=config.PORT,
+        webhook_url=config.WEBHOOK_URL,
+        secret_token='WEBHOOK_SECRET'
     )
 
 if __name__ == "__main__":
