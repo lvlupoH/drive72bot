@@ -22,6 +22,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [{"text": "Категории", "callback_data": "categories"}],
         [{"text": "Обратный звонок", "callback_data": "callback_request"}],
+        [{"text": "Дополнительные занятия", "callback_data": "extra_classes"}],
+        [{"text": "Адреса и контакты", "callback_data": "contacts"}],
         [{"text": "Галерея", "callback_data": "gallery"}],
         [{"text": "Личный кабинет", "callback_data": "profile"}]
     ]
