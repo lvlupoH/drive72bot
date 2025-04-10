@@ -10,18 +10,15 @@ from telegram.ext import (
     filters
 )
 from config import Config
-from handlers import (
-    start,
-    categories,
-    callbacks,
-    extra,
-    instructors,
-    gallery,
-    admin,
-    back,
-    profile
-)
-from database import get_db
+from handlers.start import start_menu
+from handlers.categories import handle_categories, show_packages
+from handlers.callbacks import get_callback_handlers
+from handlers.extra import get_extra_handler
+from handlers.instructors import get_instructors_handlers
+from handlers.gallery import get_gallery_handlers
+from handlers.admin import get_admin_handlers
+from handlers.back import get_back_handler
+from handlers.profile import handle_profile
 
 # Настройка логирования
 logging.basicConfig(
@@ -35,73 +32,56 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def post_init(application):
-    """Инициализация после запуска"""
+    """Пост-инициализация для вебхука"""
     await asyncio.sleep(2)
-    await application.bot.set_webhook(
-        url=Config.WEBHOOK_URL,
-        certificate=open('ssl_cert.pem', 'rb') if Config.ENV == 'production' else None
-    )
-    logger.info("Webhook установлен")
-
-def setup_handlers(application):
-    """Регистрация всех обработчиков"""
-    # Основные команды
-    application.add_handler(CommandHandler("start", start.handle_start))
-    
-    # Обработчики категорий
-    application.add_handler(CallbackQueryHandler(
-        categories.handle_categories, 
-        pattern="^categories$"
-    ))
-    application.add_handler(CallbackQueryHandler(
-        categories.show_packages, 
-        pattern="^(cat_a|cat_b)$"
-    ))
-    
-    # Обратные звонки и доп. занятия
-    application.add_handler(callbacks.get_callback_handler())
-    application.add_handler(extra.get_extra_handler())
-    
-    # Инструкторы и галерея
-    application.add_handler(CallbackQueryHandler(
-        instructors.instructors_handler, 
-        pattern="^instructors$"
-    ))
-    application.add_handler(CallbackQueryHandler(
-        gallery.gallery_handler, 
-        pattern="^gallery$"
-    ))
-    
-    # Личный кабинет
-    application.add_handler(CallbackQueryHandler(
-        profile.handle_profile,
-        pattern="^profile$"
-    ))
-    
-    # Админ-панель
-    for handler in admin.get_admin_handlers():
-        application.add_handler(handler)
-    
-    # Навигация "Назад"
-    application.add_handler(CallbackQueryHandler(
-        back.handle_back,
-        pattern="^back_"
-    ))
-    
-    # Обработка ошибок
-    application.add_error_handler(error_handler)
+    if Config.ENV == "production":
+        await application.bot.set_webhook(
+            url=Config.WEBHOOK_URL,
+            certificate=open('ssl_cert.pem', 'rb') if Config.ENV == "production" else None
+        )
+        logger.info("Webhook установлен: %s", Config.WEBHOOK_URL)
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Глобальный обработчик ошибок"""
-    logger.error(msg="Exception while handling update:", exc_info=context.error)
-    
+    logger.error("Ошибка: %s", context.error, exc_info=True)
     if update.effective_message:
-        await update.effective_message.reply_text(
-            "⚠️ Произошла ошибка. Пожалуйста, попробуйте позже."
-        )
+        await update.effective_message.reply_text("⚠️ Произошла ошибка. Попробуйте позже.")
+
+def register_handlers(application):
+    """Регистрация всех обработчиков"""
+    # Основные команды
+    application.add_handler(CommandHandler("start", start_menu))
+
+    # Категории и пакеты
+    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
+    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
+
+    # Обратные звонки и доп. занятия
+    for handler in get_callback_handlers():
+        application.add_handler(handler)
+    application.add_handler(get_extra_handler())
+
+    # Инструкторы и галерея
+    for handler in get_instructors_handlers():
+        application.add_handler(handler)
+    for handler in get_gallery_handlers():
+        application.add_handler(handler)
+
+    # Админ-панель
+    for handler in get_admin_handlers():
+        application.add_handler(handler)
+
+    # Личный кабинет
+    application.add_handler(CallbackQueryHandler(handle_profile, pattern="^profile$"))
+
+    # Навигация "Назад"
+    application.add_handler(get_back_handler())
+
+    # Обработка ошибок
+    application.add_error_handler(error_handler)
 
 def main():
-    """Точка входа в приложение"""
+    """Точка входа"""
     try:
         logger.info("Запуск бота...")
         
@@ -110,22 +90,22 @@ def main():
             .post_init(post_init) \
             .build()
 
-        setup_handlers(application)
-        
-        # Режим работы: Webhook для продакшена, Polling для разработки
+        register_handlers(application)
+
+        # Режим запуска
         if Config.ENV == "production":
             application.run_webhook(
                 listen="0.0.0.0",
                 port=Config.PORT,
+                webhook_url=Config.WEBHOOK_URL,
                 key="private.key",
-                cert="cert.pem",
-                webhook_url=Config.WEBHOOK_URL
+                cert="cert.pem"
             )
         else:
             application.run_polling()
-            
+
     except Exception as e:
-        logger.critical(f"Критическая ошибка: {str(e)}")
+        logger.critical("Критическая ошибка: %s", str(e))
         raise
 
 if __name__ == "__main__":
