@@ -14,6 +14,6 @@ async def handle_contacts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     
     await query.edit_message_text(
-        text="🏢 Наши филиалы:\n",
+        text="🏢 Контакты автошколы:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
