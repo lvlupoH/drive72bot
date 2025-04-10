@@ -26,7 +26,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [{"text": "Категории", "callback_data": "categories"}],
         [{"text": "Обратный звонок", "callback_data": "callback_request"}],
-        [{"text": "Доп. занятия", "callback_data": "extra_classes"}],
+        [{"text": "Дополнительные занятия", "callback_data": "extra_classes"}],
         [{"text": "Адреса и контакты", "callback_data": "contacts"}],
         [{"text": "Галерея", "callback_data": "gallery"}],
         [{"text": "Личный кабинет", "callback_data": "profile"}]
@@ -47,6 +47,8 @@ def main():
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
+    application.add_handler(CallbackQueryHandler(categories.show_packages, pattern="^(cat_a|cat_b)$"))
+    application.add_handler(CallbackQueryHandler(gallery.handle_gallery, pattern="^gallery$"))
     application.add_handler(CallbackQueryHandler(contacts.handle_contacts, pattern="^contacts$"))
     application.add_handler(callbacks.setup_callbacks_handler())
     application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
