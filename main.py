@@ -8,13 +8,10 @@ from telegram.ext import (
     ContextTypes
 )
 from config import Config
-from handlers import (
-    categories,
-    callbacks,
-    back,
-    admin,
-    gallery
-)
+from handlers.categories import handle_categories, show_packages  # Явный импорт функций
+from handlers.callbacks import setup_callbacks_handler
+from handlers.gallery import handle_gallery
+from handlers.admin import get_admin_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -33,15 +30,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup={"inline_keyboard": keyboard}
     )
 
+async def post_init(application):
+    await asyncio.sleep(5)
+    await application.bot.set_webhook(Config.WEBHOOK_URL)
+
 def main():
-    app = Application.builder().token(Config.TELEGRAM_TOKEN).build()
+    app = Application.builder().token(Config.TELEGRAM_TOKEN).post_init(post_init).build()
     
     # Регистрация обработчиков
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(categories.handle_categories, pattern="^categories$"))
-    app.add_handler(CallbackQueryHandler(gallery.handle_gallery, pattern="^gallery$"))
-    app.add_handler(callbacks.setup_callbacks_handler())
-    app.add_handlers(admin.get_admin_handler())
+    app.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
+    app.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
+    app.add_handler(CallbackQueryHandler(handle_gallery, pattern="^gallery$"))
+    app.add_handler(setup_callbacks_handler())
+    app.add_handlers(get_admin_handler())
     
     app.run_webhook(
         listen="0.0.0.0",
