@@ -4,7 +4,8 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler,
     filters,
-    CommandHandler
+    CommandHandler,
+    CallbackQueryHandler  # Добавлен недостающий импорт
 )
 from config import Config
 import smtplib
