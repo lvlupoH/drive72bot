@@ -7,7 +7,6 @@ from telegram.ext import (
     CallbackQueryHandler,
     filters
 )
-from handlers.back import back_handler  # ✅ Правильный импорт
 from config import Config
 import hashlib
 import psycopg2
@@ -15,11 +14,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Состояния админ-панели
-ADMIN_AUTH, ADD_USERNAME, ADD_FULLNAME, ADD_PHONE, ADD_CATEGORY, ADD_GROUP, ADD_PERIOD, ADD_EXAM_THEORY, ADD_EXAM_GOS, ADD_EXAM_PRACTICE = range(10)
+ADMIN_AUTH, ADD_USERNAME, ADD_FULLNAME, ADD_PHONE, ADD_CATEGORY, ADD_GROUP, ADD_PERIOD = range(7)
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
 
-# Подключение к БД
 def get_db_connection():
     return psycopg2.connect(Config.DATABASE_URL)
 
@@ -39,7 +36,6 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📋 Список учеников", callback_data="students_list")],
         [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
-        [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
         [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
     ]
     await update.message.reply_text(
