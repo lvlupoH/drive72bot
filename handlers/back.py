@@ -9,16 +9,14 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if data == "main":
         keyboard = [
-            [{"text": "Категории", "callback_data": "categories"}],
-            [{"text": "Обратный звонок", "callback_data": "callback_request"}],
-            [{"text": "Дополнительные занятия", "callback_data": "extra_classes"}],
-            [{"text": "Адреса и контакты", "callback_data": "contacts"}],
-            [{"text": "Галерея", "callback_data": "gallery"}],
-            [{"text": "Личный кабинет", "callback_data": "profile"}]
+            [InlineKeyboardButton("Категории", callback_data="categories")],
+            [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
+            [InlineKeyboardButton("Адреса", callback_data="contacts")],
+            [InlineKeyboardButton("Галерея", callback_data="gallery")]
         ]
         await query.edit_message_text(
-            "Главное меню:",
-            reply_markup={"inline_keyboard": keyboard}
+            "🏁 Главное меню:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
     
     elif data == "categories":
