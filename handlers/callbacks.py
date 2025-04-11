@@ -12,7 +12,7 @@ import smtplib
 from email.mime.text import MIMEText
 import logging
 from datetime import datetime
-from .back import back_handler  # Импорт обработчика
+from .back import back_handler
 
 # Состояния диалога
 NAME, PHONE, QUESTION = range(3)
@@ -21,17 +21,29 @@ logger = logging.getLogger(__name__)
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text("📞 Введите ваше ФИО:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_main")]]
+    await query.edit_message_text(
+        "📞 Введите ваше ФИО:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['name'] = update.message.text
-    await update.message.reply_text("📱 Введите ваш номер телефона:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_callback")]]
+    await update.message.reply_text(
+        "📱 Введите ваш номер телефона:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['phone'] = update.message.text
-    await update.message.reply_text("❓ Введите ваш вопрос:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_callback")]]
+    await update.message.reply_text(
+        "❓ Введите ваш вопрос:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -57,26 +69,29 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
             server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
             server.send_message(msg)
         
-        await update.message.reply_text("✅ Данные отправлены!")
+        await update.message.reply_text("✅ Данные отправлены администратору!")
     except Exception as e:
         logger.error(f"Ошибка: {e}")
-        await update.message.reply_text("❌ Ошибка отправки!")
+        await update.message.reply_text("❌ Произошла ошибка при отправке!")
     
+    context.user_data.clear()
+    return ConversationHandler.END
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🚫 Запрос отменен")
     context.user_data.clear()
     return ConversationHandler.END
 
 def setup_callbacks_handler():
     return ConversationHandler(
-        entry_points=[
-            CallbackQueryHandler(start_callback, pattern="^(callback_request|extra_classes)$")
-        ],
+        entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
         fallbacks=[
-            CommandHandler('cancel', lambda update, context: ConversationHandler.END),
+            CommandHandler('cancel', cancel),
             CallbackQueryHandler(back_handler, pattern="^back_")
         ],
         allow_reentry=True
