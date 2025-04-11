@@ -7,11 +7,11 @@ async def handle_gallery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     keyboard = [
         [InlineKeyboardButton("VK", url="https://vk.com/drive_72")],
-        [InlineKeyboardButton("Telegram", url="https://t.me/drive_in_soul")],
+        [InlineKeyboardButton("Telegram канал", url="https://t.me/drive_in_soul")],
         [InlineKeyboardButton("Назад", callback_data="back_main")]
     ]
     
     await query.edit_message_text(
-        "📸 Наши социальные сети:",
+        text="📸 Наши социальные сети:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
