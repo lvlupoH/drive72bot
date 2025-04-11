@@ -45,14 +45,20 @@ async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     packages = CATEGORIES[category]["packages"]
     buttons = []
     
+    # Добавляем кнопки для каждого тарифа
     for name, data in packages.items():
-        btn = InlineKeyboardButton(
-            f"{name} - {data['price']}₽ | {data['desc']}",
-            callback_data=f"package_{name}"
-        )
-        buttons.append([btn])
+        buttons.append([
+            InlineKeyboardButton(
+                f"{name} - {data['price']}₽ | {data['desc']}", 
+                callback_data=f"info_{name}"
+            ),
+            InlineKeyboardButton(
+                "💳 Оплатить", 
+                url=f"https://driveavto72.ru/contacts?package={name}"
+            )
+        ])
     
-    buttons.append([InlineKeyboardButton("💳 Оплатить онлайн", url="https://driveavto72.ru/contacts")])
+    # Кнопка "Назад"
     buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_categories")])
     
     await query.edit_message_text(
