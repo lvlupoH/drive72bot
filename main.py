@@ -23,16 +23,16 @@ logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [{"text": "Категории", "callback_data": "categories"}],
-        [{"text": "Обратный звонок", "callback_data": "callback_request"}],
-        [{"text": "Дополнительные занятия", "callback_data": "extra_classes"}],
-        [{"text": "Адреса и контакты", "callback_data": "contacts"}],
-        [{"text": "Галерея", "callback_data": "gallery"}],
-        [{"text": "Личный кабинет", "callback_data": "profile"}]
+        [InlineKeyboardButton("Категории", callback_data="categories")],
+        [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
+        [InlineKeyboardButton("Дополнительные занятия", callback_data="extra_classes")],
+        [InlineKeyboardButton("Адреса и контакты", callback_data="contacts")],
+        [InlineKeyboardButton("Галерея", callback_data="gallery")],
+        [InlineKeyboardButton("Личный кабинет", callback_data="profile")]
     ]
     await update.message.reply_text(
         "🏎️ Добро пожаловать в Drive72!",
-        reply_markup={"inline_keyboard": keyboard}
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 async def post_init(application):
