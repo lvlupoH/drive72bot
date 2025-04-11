@@ -1,11 +1,11 @@
-from telegram import Update, ReplyKeyboardRemove
+from telegram import Update, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes,
     ConversationHandler,
     MessageHandler,
     filters,
     CommandHandler,
-    CallbackQueryHandler  # Добавлен недостающий импорт
+    CallbackQueryHandler
 )
 from config import Config
 import smtplib
@@ -17,29 +17,35 @@ from datetime import datetime
 NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
 
-# Общий обработчик для обоих типов запросов
-async def start_request(update: Update, context: ContextTypes.DEFAULT_TYPE, request_type: str):
-    context.user_data['request_type'] = request_type
-    await update.message.reply_text(
-        f"📝 {request_type}\n\nВведите ваше ФИО:",
-        reply_markup=ReplyKeyboardRemove()
+async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    # Добавляем кнопку "Назад" сразу в первый шаг
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_main")]]
+    
+    await query.edit_message_text(
+        "📞 Запрос обратного звонка\n\nПожалуйста, введите ваше ФИО:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return NAME
 
-async def callback_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return await start_request(update, context, "Обратный звонок")
-
-async def extra_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return await start_request(update, context, "Дополнительные занятия")
-
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['name'] = update.message.text
-    await update.message.reply_text("📱 Введите ваш номер телефона:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_callback")]]
+    await update.message.reply_text(
+        "📱 Теперь введите ваш номер телефона:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['phone'] = update.message.text
-    await update.message.reply_text("❓ Введите ваш вопрос:")
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_callback")]]
+    await update.message.reply_text(
+        "❓ Опишите ваш вопрос:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -47,19 +53,29 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['question'] = update.message.text
     
     try:
+        # Отправка email
         await send_email(
-            request_type=context.user_data['request_type'],
+            request_type="Обратный звонок",
             name=context.user_data['name'],
             phone=context.user_data['phone'],
             question=context.user_data['question'],
             username=user.username
         )
-        await update.message.reply_text("✅ Данные отправлены администратору!")
+        # Запись в БД (пример для PostgreSQL)
+        conn = psycopg2.connect(Config.DATABASE_URL)
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO callback_requests (name, phone, question, username) VALUES (%s, %s, %s, %s)",
+            (context.user_data['name'], context.user_data['phone'], context.user_data['question'], user.username)
+        )
+        conn.commit()
+        await update.message.reply_text("✅ Ваш запрос принят!")
     except Exception as e:
         logger.error(f"Ошибка: {e}")
-        await update.message.reply_text("❌ Ошибка отправки!")
+        await update.message.reply_text("❌ Произошла ошибка!")
+    finally:
+        context.user_data.clear()
     
-    context.user_data.clear()
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -69,16 +85,16 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def send_email(request_type: str, name: str, phone: str, question: str, username: str):
     body = f"""
-    Тип запроса: {request_type}
-    Имя: {name}
-    Телефон: {phone}
-    Вопрос: {question}
-    Username: @{username}
-    Дата: {datetime.now().strftime("%Y-%m-%d %H:%M")}
+    <b>Новый запрос:</b> {request_type}
+    <b>ФИО:</b> {name}
+    <b>Телефон:</b> {phone}
+    <b>Вопрос:</b> {question}
+    <b>Username:</b> @{username}
+    <b>Дата:</b> {datetime.now().strftime("%d.%m.%Y %H:%M")}
     """
     
-    msg = MIMEText(body.strip())
-    msg['Subject'] = f'📞 {request_type} от {name}'
+    msg = MIMEText(body, 'html')
+    msg['Subject'] = f'📞 Запрос от {name}'
     msg['From'] = Config.EMAIL_USER
     msg['To'] = Config.ADMIN_EMAIL
 
@@ -88,16 +104,15 @@ async def send_email(request_type: str, name: str, phone: str, question: str, us
 
 def setup_callbacks_handler():
     return ConversationHandler(
-        entry_points=[
-            CallbackQueryHandler(callback_start, pattern="^callback_request$"),
-            CallbackQueryHandler(extra_start, pattern="^extra_classes$"),
-            CallbackQueryHandler(callback_start, pattern="^contacts_callback$")
-        ],
+        entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
+        fallbacks=[
+            CommandHandler('cancel', cancel),
+            CallbackQueryHandler(back_handler, pattern="^back_")
+        ],
         allow_reentry=True
     )
