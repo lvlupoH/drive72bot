@@ -5,19 +5,19 @@ CATEGORIES = {
     "cat_a": {
         "title": "Категория А, А1",
         "packages": {
-            "МОТО1": {"price": 10000, "desc": "Базовый курс"},
-            "МОТО2": {"price": 15000, "desc": "Продвинутый курс"},
-            "МОТО3": {"price": 18000, "desc": "Профессиональный курс"},
-            "МОТО4": {"price": 22000, "desc": "VIP обучение"}
+            "МОТО1": {"price": 10000, "desc": "Базовый курс", "url": "https://driveavto72.ru/contacts"},
+            "МОТО2": {"price": 15000, "desc": "Продвинутый курс", "url": "https://driveavto72.ru/contacts"},
+            "МОТО3": {"price": 18000, "desc": "Профессиональный курс", "url": "https://driveavto72.ru/contacts"},
+            "МОТО4": {"price": 22000, "desc": "VIP обучение", "url": "https://driveavto72.ru/contacts"}
         }
     },
     "cat_b": {
         "title": "Категория В",
         "packages": {
-            "АВТО1": {"price": 20000, "desc": "Начальный уровень"},
-            "АВТО2": {"price": 25000, "desc": "Полный курс"},
-            "АВТО3": {"price": 28000, "desc": "Интенсивный курс"},
-            "АВТО4": {"price": 32000, "desc": "Персональное обучение"}
+            "АВТО1": {"price": 20000, "desc": "Начальный уровень", "url": "https://driveavto72.ru/contacts"},
+            "АВТО2": {"price": 25000, "desc": "Полный курс", "url": "https://driveavto72.ru/contacts"},
+            "АВТО3": {"price": 28000, "desc": "Интенсивный курс", "url": "https://driveavto72.ru/contacts"},
+            "АВТО4": {"price": 32000, "desc": "Персональное обучение", "url": "https://driveavto72.ru/contacts"}
         }
     }
 }
@@ -45,21 +45,13 @@ async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     packages = CATEGORIES[category]["packages"]
     buttons = []
     
-    # Добавляем кнопки для каждого тарифа
     for name, data in packages.items():
         buttons.append([
-            InlineKeyboardButton(
-                f"{name} - {data['price']}₽ | {data['desc']}", 
-                callback_data=f"info_{name}"
-            ),
-            InlineKeyboardButton(
-                "💳 Оплатить", 
-                url=f"https://driveavto72.ru/contacts?package={name}"
-            )
+            InlineKeyboardButton(f"{name} - {data['price']}₽ | {data['desc']}", callback_data=f"package_{name}"),
+            InlineKeyboardButton("💳 Оплатить", url=data["url"])
         ])
     
-    # Кнопка "Назад"
-    buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_categories")])
+    buttons.append([InlineKeyboardButton("Назад", callback_data="back_categories")])
     
     await query.edit_message_text(
         text=f"{CATEGORIES[category]['title']}\n\nВыберите пакет:",
