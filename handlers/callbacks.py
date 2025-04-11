@@ -1,4 +1,4 @@
-from telegram import Update, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import (
     ContextTypes,
     ConversationHandler,
@@ -12,6 +12,7 @@ import smtplib
 from email.mime.text import MIMEText
 import logging
 from datetime import datetime
+from .back import back_handler  # Добавьте этот импорт
 
 # Состояния диалога
 NAME, PHONE, QUESTION = range(3)
@@ -104,7 +105,9 @@ async def send_email(request_type: str, name: str, phone: str, question: str, us
 
 def setup_callbacks_handler():
     return ConversationHandler(
-        entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
+        entry_points=[
+            CallbackQueryHandler(start_callback, pattern="^callback_request$")
+        ],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
@@ -112,7 +115,7 @@ def setup_callbacks_handler():
         },
         fallbacks=[
             CommandHandler('cancel', cancel),
-            CallbackQueryHandler(back_handler, pattern="^back_")
+            CallbackQueryHandler(back_handler, pattern="^back_")  # Теперь back_handler доступен
         ],
         allow_reentry=True
     )
