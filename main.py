@@ -54,7 +54,7 @@ def main():
     application.add_handler(CallbackQueryHandler(back.back_handler, pattern="^back_"))
     application.add_handlers(admin.get_admin_handler())
     
-    application.run_webhook(
+    application.run_polling(
         listen="0.0.0.0",
         port=config.PORT,
         webhook_url=config.WEBHOOK_URL
