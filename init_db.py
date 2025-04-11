@@ -14,6 +14,18 @@ def create_tables():
             created_at TIMESTAMP DEFAULT NOW()
         )
         """,
+        CREATE TABLE students (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(100),
+            fullname VARCHAR(200),
+            phone VARCHAR(20),
+            category VARCHAR(5),
+            group_num VARCHAR(50),
+            period VARCHAR(50),
+            exam_theory DATE,
+            exam_gos DATE,
+            exam_practice DATE
+        );
     )
     
     conn = None
