@@ -11,13 +11,14 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton("Категории", callback_data="categories")],
             [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
-            [InlineKeyboardButton("Адреса", callback_data="contacts")],
-            [InlineKeyboardButton("Галерея", callback_data="gallery")]
+            [InlineKeyboardButton("Дополнительные занятия", callback_data="extra_classes")],
+            [InlineKeyboardButton("Адреса и контакты", callback_data="contacts")],
+            [InlineKeyboardButton("Галерея", callback_data="gallery")],
+            [InlineKeyboardButton("Личный кабинет", callback_data="profile")]
         ]
         await query.edit_message_text(
             "🏁 Главное меню:",
             reply_markup=InlineKeyboardMarkup(keyboard)
-        )
     
     elif data == "categories":
         keyboard = [
@@ -27,5 +28,4 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         await query.edit_message_text(
             "Выберите категорию:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+            reply_markup=InlineKeyboardMarkup(keyboard))
