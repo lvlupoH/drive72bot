@@ -11,7 +11,7 @@ from config import Config
 import hashlib
 import psycopg2
 import logging
-from .back import back_handler  # Добавлен импорт
+from .back import back_handler
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +156,7 @@ def get_admin_handler():
                 ADD_EXAM_GOS: [MessageHandler(filters.TEXT, process_exam_gos)],
                 ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, process_exam_practice)]
             },
-            fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")],  # Теперь импортирован
+            fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")],
             allow_reentry=True
         )
     ]
