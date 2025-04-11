@@ -1,4 +1,4 @@
-from telegram import Update, ReplyKeyboardRemove
+from telegram import Update, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes,
     ConversationHandler,
@@ -12,6 +12,7 @@ import smtplib
 from email.mime.text import MIMEText
 import logging
 from datetime import datetime
+from .back import back_handler
 
 # Состояния диалога
 NAME, PHONE, QUESTION = range(3)
@@ -39,13 +40,12 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         body = f"""
-        Новый запрос:
-        Тип: Обратный звонок
+        Запрос: Обратный звонок
         Имя: {context.user_data['name']}
         Телефон: {context.user_data['phone']}
         Вопрос: {context.user_data['question']}
         Username: @{user.username}
-        Дата: {datetime.now().strftime("%d.%m.%Y %H:%M")}
+        Дата: {datetime.now().strftime("%Y-%m-%d %H:%M")}
         """
         
         msg = MIMEText(body.strip())
@@ -67,12 +67,17 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def setup_callbacks_handler():
     return ConversationHandler(
-        entry_points=[CallbackQueryHandler(start_callback, pattern="^callback_request$")],
+        entry_points=[
+            CallbackQueryHandler(start_callback, pattern="^(callback_request|contacts_callback)$")
+        ],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
-        fallbacks=[CommandHandler('cancel', lambda update, context: ConversationHandler.END)],
+        fallbacks=[
+            CommandHandler('cancel', lambda update, context: ConversationHandler.END),
+            CallbackQueryHandler(back_handler, pattern="^back_")]
+        ),
         allow_reentry=True
     )
