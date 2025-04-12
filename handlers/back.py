@@ -19,6 +19,7 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "🏁 Главное меню:",
             reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     
     elif data == "admin":
         keyboard = [
