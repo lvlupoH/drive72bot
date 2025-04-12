@@ -14,6 +14,7 @@ from handlers.gallery import handle_gallery
 from handlers.contacts import handle_contacts
 from handlers.back import back_handler
 from handlers.admin import get_admin_handler
+from handlers.profile import show_profile
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -49,6 +50,7 @@ def main():
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(handle_gallery, pattern="^gallery$"))
     application.add_handler(CallbackQueryHandler(handle_contacts, pattern="^contacts$"))
+    application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
     application.add_handler(setup_callbacks_handler())
     application.add_handlers(get_admin_handler())
