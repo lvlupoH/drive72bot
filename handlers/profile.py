@@ -40,3 +40,5 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         text=text,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="back_main")]])
+    )
+    
