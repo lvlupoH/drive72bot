@@ -16,11 +16,7 @@ from .back import back_handler
 logger = logging.getLogger(__name__)
 
 # Состояния админ-панели
-(
-    ADMIN_AUTH, ADD_USERNAME, ADD_FULLNAME, ADD_PHONE, ADD_CATEGORY, 
-    ADD_GROUP, ADD_PERIOD, ADD_EXAM_THEORY, ADD_EXAM_GOS, ADD_EXAM_PRACTICE,
-    DELETE_STUDENT
-) = range(11)
+ADMIN_AUTH, ADD_USERNAME, ADD_FULLNAME, ADD_PHONE, ADD_CATEGORY, ADD_GROUP, ADD_PERIOD, ADD_EXAM_THEORY, ADD_EXAM_GOS, ADD_EXAM_PRACTICE = range(10)
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
 
 def get_db_connection():
@@ -51,7 +47,6 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
-# Добавление ученика (существующий код)
 async def add_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -123,91 +118,13 @@ async def process_exam_practice(update: Update, context: ContextTypes.DEFAULT_TY
         conn.commit()
         await update.message.reply_text("✅ Ученик успешно добавлен!")
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
-        await update.message.reply_text("❌ Ошибка добавления!")
+        logger.error(f"Ошибка добавления ученика: {e}")
+        await update.message.reply_text("❌ Ошибка добавления! Проверьте логи.")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     
     context.user_data.clear()
-    return ConversationHandler.END
-
-async def students_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT username, fullname, category FROM students")
-        students = cur.fetchall()
-        
-        if not students:
-            await query.edit_message_text("📂 Список учеников пуст")
-            return
-        
-        text = "📋 Список учеников:\n\n"
-        for idx, student in enumerate(students, 1):
-            text += f"{idx}. @{student[0]} - {student[1]} ({student[2]})\n"
-        
-        await query.edit_message_text(
-            text,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="back_admin")]])
-        )
-        
-    except Exception as e:
-        logger.error(f"Ошибка: {e}")
-        await query.edit_message_text("❌ Ошибка загрузки списка")
-    finally:
-        conn.close()
-
-async def delete_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT id, username FROM students")
-        students = cur.fetchall()
-        
-        if not students:
-            await query.edit_message_text("🗑️ Нет учеников для удаления")
-            return
-        
-        keyboard = [
-            [InlineKeyboardButton(f"@{student[1]}", callback_data=f"delete_{student[0]}")]
-            for student in students
-        ]
-        keyboard.append([InlineKeyboardButton("🔙 Назад", callback_data="back_admin")])
-        
-        await query.edit_message_text(
-            "Выберите ученика для удаления:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        return DELETE_STUDENT
-        
-    except Exception as e:
-        logger.error(f"Ошибка: {e}")
-        await query.edit_message_text("❌ Ошибка загрузки списка")
-    finally:
-        conn.close()
-
-async def delete_student_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    student_id = query.data.split("_")[1]
-    
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("DELETE FROM students WHERE id = %s", (student_id,))
-        conn.commit()
-        await query.edit_message_text("✅ Ученик успешно удален!")
-    except Exception as e:
-        logger.error(f"Ошибка: {e}")
-        await query.edit_message_text("❌ Ошибка удаления")
-    finally:
-        conn.close()
     return ConversationHandler.END
 
 def get_admin_handler():
@@ -222,12 +139,11 @@ def get_admin_handler():
                 ADD_CATEGORY: [MessageHandler(filters.TEXT, process_category)],
                 ADD_GROUP: [MessageHandler(filters.TEXT, process_group)],
                 ADD_PERIOD: [MessageHandler(filters.TEXT, process_period)],
-                ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, process_exam_theory)],  # <- Запятая добавлена
-                ADD_EXAM_GOS: [MessageHandler(filters.TEXT, process_exam_gos)],        # <- Запятая добавлена
+                ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, process_exam_theory)],
+                ADD_EXAM_GOS: [MessageHandler(filters.TEXT, process_exam_gos)],
                 ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, process_exam_practice)]
             },
             fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")]
         ),
-        CallbackQueryHandler(students_list, pattern="^students_list$"),
-        CallbackQueryHandler(delete_student_start, pattern="^delete_student$")
+        CallbackQueryHandler(add_student, pattern="^add_student$")  # Добавлен обработчик кнопки
     ]
