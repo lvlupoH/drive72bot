@@ -17,19 +17,16 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Личный кабинет", callback_data="profile")]
         ]
         await query.edit_message_text(
-            "Главное меню:",
+            "🏁 Главное меню:",
             reply_markup=InlineKeyboardMarkup(keyboard)
-        )
     
-    elif data == "categories":
+    elif data == "admin":
         keyboard = [
-            [InlineKeyboardButton("Категория А, А1", callback_data="cat_a")],
-            [InlineKeyboardButton("Категория В", callback_data="cat_b")],
-            [InlineKeyboardButton("Назад", callback_data="back_main")]
+            [InlineKeyboardButton("📋 Список учеников", callback_data="students_list")],
+            [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
+            [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
+            [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
         ]
         await query.edit_message_text(
-            "Выберите категорию:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    
-    return
+            "⚙️ Админ-панель:",
+            reply_markup=InlineKeyboardMarkup(keyboard))
