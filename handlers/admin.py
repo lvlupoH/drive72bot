@@ -20,12 +20,17 @@ ADMIN_AUTH, ADD_USERNAME, ADD_FULLNAME, ADD_PHONE, ADD_CATEGORY, ADD_GROUP, ADD_
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
 
 def get_db_connection():
-    return psycopg2.connect(Config.DATABASE_URL)
+    try:
+        return psycopg2.connect(Config.DATABASE_URL)
+    except Exception as e:
+        logger.error(f"Ошибка подключения к БД: {e}")
+        return None
 
 async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != Config.ADMIN_ID:
         await update.message.reply_text("🚫 Доступ запрещен!")
         return ConversationHandler.END
+    logger.info("Админ начал аутентификацию")
     await update.message.reply_text("🔑 Введите пароль:")
     return ADMIN_AUTH
 
@@ -45,60 +50,75 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⚙️ Админ-панель:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+    logger.info("Админ успешно авторизовался")
     return ConversationHandler.END
 
 async def add_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     context.user_data['student'] = {}
+    logger.info("Начато добавление ученика")
     await query.edit_message_text("Введите username ученика (@username):")
     return ADD_USERNAME
 
 async def process_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['student']['username'] = update.message.text
+    logger.info(f"Введен username: {update.message.text}")
     await update.message.reply_text("Введите ФИО ученика:")
     return ADD_FULLNAME
 
 async def process_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['student']['fullname'] = update.message.text
+    logger.info(f"Введено ФИО: {update.message.text}")
     await update.message.reply_text("Введите номер телефона:")
     return ADD_PHONE
 
 async def process_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['student']['phone'] = update.message.text
+    logger.info(f"Введен телефон: {update.message.text}")
     await update.message.reply_text("Введите категорию (A/B):")
     return ADD_CATEGORY
 
 async def process_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['student']['category'] = update.message.text
+    logger.info(f"Введена категория: {update.message.text}")
     await update.message.reply_text("Введите группу:")
     return ADD_GROUP
 
 async def process_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['student']['group'] = update.message.text
+    logger.info(f"Введена группа: {update.message.text}")
     await update.message.reply_text("Введите период обучения (например: 01.09.2023-01.03.2024):")
     return ADD_PERIOD
 
 async def process_period(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['student']['period'] = update.message.text
+    logger.info(f"Введен период: {update.message.text}")
     await update.message.reply_text("Введите дату внутреннего теоретического экзамена (ДД.ММ.ГГГГ):")
     return ADD_EXAM_THEORY
 
 async def process_exam_theory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['student']['exam_theory'] = update.message.text
+    logger.info(f"Введена дата внутреннего экзамена: {update.message.text}")
     await update.message.reply_text("Введите дату гос. теоретического экзамена (ДД.ММ.ГГГГ):")
     return ADD_EXAM_GOS
 
 async def process_exam_gos(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['student']['exam_gos'] = update.message.text
+    logger.info(f"Введена дата гос. экзамена: {update.message.text}")
     await update.message.reply_text("Введите дату практического экзамена (ДД.ММ.ГГГГ):")
     return ADD_EXAM_PRACTICE
 
 async def process_exam_practice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['student']['exam_practice'] = update.message.text
+    logger.info(f"Введена дата практики: {update.message.text}")
     
+    conn = None
     try:
         conn = get_db_connection()
+        if not conn:
+            raise Exception("Не удалось подключиться к БД")
+        
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO students 
@@ -117,9 +137,12 @@ async def process_exam_practice(update: Update, context: ContextTypes.DEFAULT_TY
         ))
         conn.commit()
         await update.message.reply_text("✅ Ученик успешно добавлен!")
+        logger.info("Ученик добавлен в БД")
+        
     except Exception as e:
-        logger.error(f"Ошибка добавления ученика: {e}")
-        await update.message.reply_text("❌ Ошибка добавления! Проверьте логи.")
+        logger.error(f"Ошибка при добавлении ученика: {str(e)}")
+        await update.message.reply_text("❌ Ошибка добавления! Подробности в логах.")
+        
     finally:
         if conn:
             conn.close()
@@ -143,7 +166,8 @@ def get_admin_handler():
                 ADD_EXAM_GOS: [MessageHandler(filters.TEXT, process_exam_gos)],
                 ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, process_exam_practice)]
             },
-            fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")]
+            fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")],
+            name="admin_conversation"
         ),
-        CallbackQueryHandler(add_student, pattern="^add_student$")  # Добавлен обработчик кнопки
+        CallbackQueryHandler(add_student, pattern="^add_student$")
     ]
