@@ -12,13 +12,16 @@ class Config:
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
     ADMIN_ID = int(os.getenv("ADMIN_ID"))
     WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-    SCHOOL_ADDRESS = os.getenv("SCHOOL_ADDRESS", "ул. Примерная, 123")
-    
+    PORT = int(os.getenv("PORT", 10000))  # Порт с дефолтным значением
+
     @classmethod
     def validate(cls):
-        required_vars = ["TELEGRAM_TOKEN", "DATABASE_URL", "ADMIN_ID"]
-        missing = [var for var in required_vars if not getattr(cls, var)]
+        required = [
+            "TELEGRAM_TOKEN", "DATABASE_URL", "EMAIL_USER",
+            "EMAIL_PASSWORD", "ADMIN_EMAIL", "ADMIN_ID", "WEBHOOK_URL"
+        ]
+        missing = [var for var in required if not getattr(cls, var)]
         if missing:
-            sys.exit(f"Отсутствуют переменные окружения: {', '.join(missing)}")
+            sys.exit(f"Ошибка: Отсутствуют переменные окружения: {', '.join(missing)}")
 
 Config.validate()
