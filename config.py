@@ -13,6 +13,7 @@ class Config:
     ADMIN_ID = int(os.getenv("ADMIN_ID"))
     WEBHOOK_URL = os.getenv("WEBHOOK_URL")
     PORT = int(os.getenv("PORT", 10000))
+    SCHOOL_ADDRESS = "ул. Примерная, 123\nг. Примерный"
     
     @classmethod
     def validate(cls):
