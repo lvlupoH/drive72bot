@@ -222,10 +222,9 @@ def get_admin_handler():
                 ADD_CATEGORY: [MessageHandler(filters.TEXT, process_category)],
                 ADD_GROUP: [MessageHandler(filters.TEXT, process_group)],
                 ADD_PERIOD: [MessageHandler(filters.TEXT, process_period)],
-                ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, process_exam_theory)],
-                ADD_EXAM_GOS: [MessageHandler(filters.TEXT, process_exam_gos)],
+                ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, process_exam_theory)],  # <- Запятая добавлена
+                ADD_EXAM_GOS: [MessageHandler(filters.TEXT, process_exam_gos)],        # <- Запятая добавлена
                 ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, process_exam_practice)]
-                DELETE_STUDENT: [CallbackQueryHandler(delete_student_confirm, pattern="^delete_")]
             },
             fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")]
         ),
