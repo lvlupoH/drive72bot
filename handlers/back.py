@@ -1,13 +1,16 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
     data = query.data.split('_')[1]
     
     if data == "main":
+        logger.info("Возврат в главное меню")
         keyboard = [
             [InlineKeyboardButton("Категории", callback_data="categories")],
             [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
@@ -22,6 +25,7 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     
     elif data == "admin":
+        logger.info("Возврат в админ-панель")
         keyboard = [
             [InlineKeyboardButton("📋 Список учеников", callback_data="students_list")],
             [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
@@ -32,3 +36,5 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "⚙️ Админ-панель:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+    
+    return
