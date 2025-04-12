@@ -11,6 +11,7 @@ from config import Config
 import hashlib
 import psycopg2
 import logging
+from .back import back_handler  # Исправленный импорт
 
 logger = logging.getLogger(__name__)
 
