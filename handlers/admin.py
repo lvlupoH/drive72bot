@@ -11,7 +11,6 @@ from config import Config
 import hashlib
 import psycopg2
 import logging
-from .back import back_handler
 
 logger = logging.getLogger(__name__)
 
@@ -20,17 +19,12 @@ ADMIN_AUTH, ADD_USERNAME, ADD_FULLNAME, ADD_PHONE, ADD_CATEGORY, ADD_GROUP, ADD_
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
 
 def get_db_connection():
-    try:
-        return psycopg2.connect(Config.DATABASE_URL)
-    except Exception as e:
-        logger.error(f"Ошибка подключения к БД: {e}")
-        return None
+    return psycopg2.connect(Config.DATABASE_URL)
 
 async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != Config.ADMIN_ID:
         await update.message.reply_text("🚫 Доступ запрещен!")
         return ConversationHandler.END
-    logger.info("Админ начал аутентификацию")
     await update.message.reply_text("🔑 Введите пароль:")
     return ADMIN_AUTH
 
@@ -43,27 +37,24 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📋 Список учеников", callback_data="students_list")],
         [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
-        [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
         [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
     ]
     await update.message.reply_text(
         "⚙️ Админ-панель:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-    logger.info("Админ успешно авторизовался")
     return ConversationHandler.END
 
 async def add_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     context.user_data['student'] = {}
-    logger.info("Начато добавление ученика")
-    await query.edit_message_text("Введите username ученика (@username):")
+    await query.message.reply_text("Введите username ученика (@username):")  # Исправлено
     return ADD_USERNAME
 
 async def process_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['student']['username'] = update.message.text
-    logger.info(f"Введен username: {update.message.text}")
+    logger.info(f"Username получен: {update.message.text}")  # Логирование
     await update.message.reply_text("Введите ФИО ученика:")
     return ADD_FULLNAME
 
@@ -156,18 +147,103 @@ def get_admin_handler():
             entry_points=[CommandHandler('admin', admin_start)],
             states={
                 ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
-                ADD_USERNAME: [MessageHandler(filters.TEXT, process_username)],
-                ADD_FULLNAME: [MessageHandler(filters.TEXT, process_fullname)],
-                ADD_PHONE: [MessageHandler(filters.TEXT, process_phone)],
-                ADD_CATEGORY: [MessageHandler(filters.TEXT, process_category)],
-                ADD_GROUP: [MessageHandler(filters.TEXT, process_group)],
-                ADD_PERIOD: [MessageHandler(filters.TEXT, process_period)],
-                ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, process_exam_theory)],
-                ADD_EXAM_GOS: [MessageHandler(filters.TEXT, process_exam_gos)],
-                ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, process_exam_practice)]
+                ADD_USERNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_username)],
+                ADD_FULLNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_fullname)],
+                ADD_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_phone)],
+                ADD_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_category)],
+                ADD_GROUP: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_group)],
+                ADD_PERIOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_period)],
+                ADD_EXAM_THEORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_exam_theory)],
+                ADD_EXAM_GOS: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_exam_gos)],
+                ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_exam_practice)]
             },
             fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")],
-            name="admin_conversation"
-        ),
-        CallbackQueryHandler(add_student, pattern="^add_student$")
+            allow_reentry=True
+        )
+    ]
+    
+    
+    
+    
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    CommandHandler,
+    CallbackQueryHandler,
+    filters
+)
+from config import Config
+import hashlib
+import psycopg2
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Состояния админ-панели
+ADMIN_AUTH, ADD_USERNAME, ADD_FULLNAME, ADD_PHONE, ADD_CATEGORY, ADD_GROUP, ADD_PERIOD, ADD_EXAM_THEORY, ADD_EXAM_GOS, ADD_EXAM_PRACTICE = range(10)
+ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
+
+def get_db_connection():
+    return psycopg2.connect(Config.DATABASE_URL)
+
+async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != Config.ADMIN_ID:
+        await update.message.reply_text("🚫 Доступ запрещен!")
+        return ConversationHandler.END
+    await update.message.reply_text("🔑 Введите пароль:")
+    return ADMIN_AUTH
+
+async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_input = hashlib.sha256(update.message.text.encode()).hexdigest()
+    if user_input != ADMIN_PASSWORD_HASH:
+        await update.message.reply_text("❌ Неверный пароль!")
+        return ConversationHandler.END
+    
+    keyboard = [
+        [InlineKeyboardButton("📋 Список учеников", callback_data="students_list")],
+        [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
+        [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
+    ]
+    await update.message.reply_text(
+        "⚙️ Админ-панель:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return ConversationHandler.END
+
+async def add_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    context.user_data['student'] = {}
+    await query.message.reply_text("Введите username ученика (@username):")  # Исправлено
+    return ADD_USERNAME
+
+async def process_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['student']['username'] = update.message.text
+    logger.info(f"Username получен: {update.message.text}")  # Логирование
+    await update.message.reply_text("Введите ФИО ученика:")
+    return ADD_FULLNAME  # Переход к следующему состоянию
+
+# ... (остальные функции process_* остаются без изменений)
+
+def get_admin_handler():
+    return [
+        ConversationHandler(
+            entry_points=[CommandHandler('admin', admin_start)],
+            states={
+                ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
+                ADD_USERNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_username)],
+                ADD_FULLNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_fullname)],
+                ADD_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_phone)],
+                ADD_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_category)],
+                ADD_GROUP: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_group)],
+                ADD_PERIOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_period)],
+                ADD_EXAM_THEORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_exam_theory)],
+                ADD_EXAM_GOS: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_exam_gos)],
+                ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_exam_practice)]
+            },
+            fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")],
+            allow_reentry=True
+        )
     ]
