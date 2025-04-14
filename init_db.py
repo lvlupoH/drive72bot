@@ -14,17 +14,18 @@ def create_tables():
             created_at TIMESTAMP DEFAULT NOW()
         )
         """,
-        CREATE TABLE IF NOT EXISTS students (
+        CREATE TABLE students (
             id SERIAL PRIMARY KEY,
-            username VARCHAR(100) UNIQUE NOT NULL,
-            fullname VARCHAR(200) NOT NULL,
-            phone VARCHAR(20) NOT NULL,
-            category VARCHAR(5) NOT NULL,
-            group_num VARCHAR(50) NOT NULL,
-            period VARCHAR(50) NOT NULL,
+            username VARCHAR(100) UNIQUE,
+            fullname VARCHAR(200),
+            phone VARCHAR(20),
+            category VARCHAR(5),
+            group_num VARCHAR(50),
+            period VARCHAR(50),
             exam_theory DATE,
             exam_gos DATE,
-            exam_practice DATE
+            exam_practice DATE,
+            created_at TIMESTAMP DEFAULT NOW()
         );
     )
     
