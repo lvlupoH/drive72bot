@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
     ADD_EXAM_GOS,
     ADD_EXAM_PRACTICE,
     DELETE_STUDENT
-) = range(10)
+) = range(11)
 
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
 
