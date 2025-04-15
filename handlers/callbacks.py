@@ -5,7 +5,7 @@ import smtplib
 from email.mime.text import MIMEText
 import logging
 from datetime import datetime
-from database import db
+from ..database import db
 
 logger = logging.getLogger(__name__)
 
