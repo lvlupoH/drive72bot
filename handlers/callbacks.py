@@ -1,11 +1,18 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, ConversationHandler
-from config import Config
+from telegram.ext import (
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    filters,
+    CommandHandler,
+    CallbackQueryHandler
+)
+from ..config import Config
+from ..database import db
 import smtplib
 from email.mime.text import MIMEText
 import logging
 from datetime import datetime
-from ..database import db
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +32,29 @@ async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return NAME
 
+async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['name'] = update.message.text
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_callback")]]
+    await update.message.reply_text(
+        "📱 Введите ваш номер телефона:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return PHONE
+
+async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['phone'] = update.message.text
+    keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_callback")]]
+    await update.message.reply_text(
+        "❓ Введите ваш вопрос:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return QUESTION
+
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
     context.user_data['question'] = update.message.text
     
     try:
-        # Save to database
         with db.get_cursor() as cur:
             cur.execute(
                 "INSERT INTO requests (type, name, phone, question, username) VALUES (%s, %s, %s, %s, %s)",
@@ -43,7 +67,6 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             )
         
-        # Send email
         await send_email(
             request_type=context.user_data['request_type'],
             name=context.user_data['name'],
@@ -51,7 +74,6 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
             question=context.user_data['question'],
             username=user.username
         )
-        
         await update.message.reply_text("✅ Данные отправлены администратору!")
     except Exception as e:
         logger.error(f"Ошибка: {e}")
@@ -96,6 +118,9 @@ def setup_callbacks_handler():
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
-        fallbacks=[CommandHandler('cancel', lambda update, context: ConversationHandler.END)],
+        fallbacks=[
+            CommandHandler('cancel', lambda update, context: ConversationHandler.END),
+            CallbackQueryHandler(back_handler, pattern="^back_")
+        ],
         allow_reentry=True
     )
