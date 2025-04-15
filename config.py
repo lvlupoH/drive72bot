@@ -12,7 +12,8 @@ class Config:
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
     ADMIN_ID = int(os.getenv("ADMIN_ID"))
     WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-    PORT = int(os.getenv("PORT", 10000))  # Порт с дефолтным значением
+    PORT = int(os.getenv("PORT", 10000))
+    SCHOOL_ADDRESS = os.getenv("SCHOOL_ADDRESS", "Адреса не указаны")
 
     @classmethod
     def validate(cls):
@@ -22,6 +23,6 @@ class Config:
         ]
         missing = [var for var in required if not getattr(cls, var)]
         if missing:
-            sys.exit(f"Ошибка: Отсутствуют переменные окружения: {', '.join(missing)}")
+            sys.exit(f"Missing env variables: {', '.join(missing)}")
 
 Config.validate()
