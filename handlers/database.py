@@ -1,5 +1,4 @@
 import psycopg2
-from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from config import Config
 import logging
@@ -16,21 +15,25 @@ class Database:
 
     @contextmanager
     def get_cursor(self):
-        conn = psycopg2.connect(**self.conn_params)
+        conn = None
         try:
+            conn = psycopg2.connect(**self.conn_params)
             with conn.cursor() as cursor:
                 yield cursor
             conn.commit()
         except Exception as e:
-            conn.rollback()
-            raise e
+            logger.error(f"DB Error: {str(e)}")
+            if conn:
+                conn.rollback()
+            raise
         finally:
-            conn.close()
+            if conn:
+                conn.close()
 
     def create_tables(self):
         with self.get_cursor() as cur:
             try:
-                # Таблица студентов
+                # Students table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS students (
                         id SERIAL PRIMARY KEY,
@@ -47,7 +50,7 @@ class Database:
                     )
                 """)
                 
-                # Таблица запросов
+                # Requests table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS requests (
                         id SERIAL PRIMARY KEY,
@@ -61,9 +64,9 @@ class Database:
                 """)
                 logger.info("Tables created successfully")
             except Exception as e:
-                logger.error(f"Error creating tables: {str(e)}")
+                logger.error(f"Table creation failed: {str(e)}")
                 raise
 
-# Инициализация при импорте
+# Initialize database
 db = Database()
 db.create_tables()
