@@ -14,7 +14,10 @@ from handlers.admin import get_admin_handler
 from handlers.back import back_handler
 from handlers.gallery import handle_gallery
 from handlers.contacts import handle_contacts
+from handlers.profile import show_profile  # Добавлен импорт профиля
+from database import db  # Импорт экземпляра db
 
+# Настройка логгирования
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
@@ -22,6 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /start"""
     keyboard = [
         [InlineKeyboardButton("Категории", callback_data="categories")],
         [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
@@ -32,38 +36,76 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await update.message.reply_text(
         "🏎️ Добро пожаловать в автошколу Drive!",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        reply_markup={"inline_keyboard": keyboard}
     )
 
-async def post_init(app):
-    await app.bot.set_webhook(Config.WEBHOOK_URL)
+async def post_init(application):
+    """Пост-инициализация для вебхука"""
+    await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    db.create_tables()
+    """Основная функция инициализации бота"""
+    config = Config()
     
-    app = Application.builder() \
-        .token(Config.TELEGRAM_TOKEN) \
+    # Создание таблиц в базе данных
+    db.create_tables()  # Теперь db определена
+    
+    # Создание приложения
+    application = Application.builder() \
+        .token(config.TELEGRAM_TOKEN) \
         .post_init(post_init) \
         .build()
 
     # Регистрация обработчиков
-    app.add_handlers([
-        CommandHandler("start", start),
-        CallbackQueryHandler(handle_categories, pattern="^categories$"),
-        CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"),
-        CallbackQueryHandler(show_package_details, pattern="^package_"),
-        setup_callbacks_handler(),
-        CallbackQueryHandler(handle_gallery, pattern="^gallery$"),
-        CallbackQueryHandler(handle_contacts, pattern="^contacts$"),
-        CallbackQueryHandler(show_profile, pattern="^profile$"),
-        *get_admin_handler()
-    ])
-    app.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
+    application.add_handler(CommandHandler("start", start))
     
-    app.run_webhook(
+    # Обработчики категорий
+    application.add_handler(CallbackQueryHandler(
+        handle_categories, 
+        pattern="^categories$"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        show_packages, 
+        pattern="^(cat_a|cat_b)$"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        show_package_details, 
+        pattern="^package_"
+    ))
+
+    # Обратный звонок и доп. занятия
+    application.add_handler(setup_callbacks_handler())
+
+    # Админ-панель
+    application.add_handlers(get_admin_handler())
+
+    # Галерея и контакты
+    application.add_handler(CallbackQueryHandler(
+        handle_gallery, 
+        pattern="^gallery$"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        handle_contacts, 
+        pattern="^contacts$"
+    ))
+
+    # Личный кабинет
+    application.add_handler(CallbackQueryHandler(
+        show_profile,
+        pattern="^profile$"
+    ))
+
+    # Навигация "Назад"
+    application.add_handler(CallbackQueryHandler(
+        back_handler, 
+        pattern="^back_"
+    ))
+
+    # Запуск бота
+    application.run_webhook(
         listen="0.0.0.0",
-        port=Config.PORT,
-        webhook_url=Config.WEBHOOK_URL,
+        port=config.PORT,
+        webhook_url=config.WEBHOOK_URL,
         allowed_updates=Update.ALL_TYPES
     )
 
