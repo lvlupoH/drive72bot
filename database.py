@@ -65,5 +65,4 @@ class Database:
                 logger.error(f"Table creation failed: {str(e)}")
                 raise
 
-db = Database()
 db.create_tables()
