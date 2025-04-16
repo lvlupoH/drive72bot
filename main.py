@@ -18,6 +18,7 @@ from handlers import (
     show_profile
 )
 from database import db
+from handlers.back import back_handler  # Добавьте этот импорт
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -43,7 +44,7 @@ async def post_init(app):
     await app.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    db.create_tables()  # Инициализация БД
+    db.create_tables()
     
     app = Application.builder() \
         .token(Config.TELEGRAM_TOKEN) \
@@ -62,7 +63,8 @@ def main():
         CallbackQueryHandler(show_profile, pattern="^profile$"),
         *get_admin_handler()
     ])
-
+    app.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
+    
     app.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
