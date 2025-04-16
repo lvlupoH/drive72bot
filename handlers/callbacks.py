@@ -7,8 +7,8 @@ from telegram.ext import (
     CommandHandler,
     CallbackQueryHandler
 )
-from ..config import Config
-from ..database import db
+from config import Config  # Абсолютный импорт
+from database import db    # Абсолютный импорт
 import smtplib
 from email.mime.text import MIMEText
 import logging
