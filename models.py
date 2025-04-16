@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, String, Text, Date, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
 Base = declarative_base()
 
+class CallbackRequest(Base):
 class Student(Base):
     __tablename__ = 'students'
     
@@ -29,3 +30,4 @@ class Request(Base):
     question = Column(Text, nullable=False)
     username = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)
+    
