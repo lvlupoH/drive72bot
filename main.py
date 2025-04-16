@@ -64,6 +64,9 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_contacts, pattern="^contacts$"))
     application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
+         # Админ-панель
+         admin_handlers = get_admin_handler()
+         for handler in admin_handlers:
 
     # Запуск бота
     application.run_webhook(
