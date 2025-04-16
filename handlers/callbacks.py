@@ -12,11 +12,11 @@ import smtplib
 from email.mime.text import MIMEText
 import logging
 from datetime import datetime
-from .back import back_handler  # Добавлен импорт
+from .back import back_handler
 
-logger = logging.getLogger(__name__)
-
+# Состояния диалога
 NAME, PHONE, QUESTION = range(3)
+logger = logging.getLogger(__name__)
 
 async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
