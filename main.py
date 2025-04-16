@@ -35,7 +35,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await update.message.reply_text(
         "🏎️ Добро пожаловать в автошколу Drive!",
-        reply_markup={"inline_keyboard": keyboard}
+        reply_markup=InlineKeyboardMarkup(keyboard)  # Исправлено на InlineKeyboardMarkup
     )
 
 async def post_init(application):
@@ -75,3 +75,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
