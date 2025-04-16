@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from telegram import Update
+from telegram import Update, InlineKeyboardButton
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -14,7 +14,7 @@ from handlers.admin import get_admin_handler
 from handlers.back import back_handler
 from handlers.gallery import handle_gallery
 from handlers.contacts import handle_contacts
-from handlers.profile import show_profile  # Добавлен импорт профиля
+from handlers.profile import show_profile
 from database import db  # Импорт экземпляра db
 
 # Настройка логгирования
@@ -25,7 +25,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start"""
     keyboard = [
         [InlineKeyboardButton("Категории", callback_data="categories")],
         [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
@@ -40,15 +39,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def post_init(application):
-    """Пост-инициализация для вебхука"""
     await application.bot.set_webhook(Config.WEBHOOK_URL)
 
 def main():
-    """Основная функция инициализации бота"""
     config = Config()
     
     # Создание таблиц в базе данных
-    db.create_tables()  # Теперь db определена
+    db.create_tables()  # Явный вызов
     
     # Создание приложения
     application = Application.builder() \
@@ -58,48 +55,15 @@ def main():
 
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
-    
-    # Обработчики категорий
-    application.add_handler(CallbackQueryHandler(
-        handle_categories, 
-        pattern="^categories$"
-    ))
-    application.add_handler(CallbackQueryHandler(
-        show_packages, 
-        pattern="^(cat_a|cat_b)$"
-    ))
-    application.add_handler(CallbackQueryHandler(
-        show_package_details, 
-        pattern="^package_"
-    ))
-
-    # Обратный звонок и доп. занятия
+    application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
+    application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
+    application.add_handler(CallbackQueryHandler(show_package_details, pattern="^package_"))
     application.add_handler(setup_callbacks_handler())
-
-    # Админ-панель
     application.add_handlers(get_admin_handler())
-
-    # Галерея и контакты
-    application.add_handler(CallbackQueryHandler(
-        handle_gallery, 
-        pattern="^gallery$"
-    ))
-    application.add_handler(CallbackQueryHandler(
-        handle_contacts, 
-        pattern="^contacts$"
-    ))
-
-    # Личный кабинет
-    application.add_handler(CallbackQueryHandler(
-        show_profile,
-        pattern="^profile$"
-    ))
-
-    # Навигация "Назад"
-    application.add_handler(CallbackQueryHandler(
-        back_handler, 
-        pattern="^back_"
-    ))
+    application.add_handler(CallbackQueryHandler(handle_gallery, pattern="^gallery$"))
+    application.add_handler(CallbackQueryHandler(handle_contacts, pattern="^contacts$"))
+    application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
+    application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
 
     # Запуск бота
     application.run_webhook(
