@@ -12,7 +12,6 @@ class Database:
         self.cursor = None
         
     def connect(self):
-        """Установка соединения с базой данных"""
         try:
             self.connection = psycopg2.connect(Config.DATABASE_URL)
             self.connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
@@ -23,18 +22,14 @@ class Database:
             raise
 
     def disconnect(self):
-        """Закрытие соединения с базой данных"""
         if self.connection:
             self.cursor.close()
             self.connection.close()
-            logger.info("Соединение с базой данных закрыто")
+            logger.info("Соединение закрыто")
 
     def create_tables(self):
-        """Создание таблиц при первом запуске"""
         try:
             self.connect()
-            
-            # Таблица студентов
             self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS students (
                     id SERIAL PRIMARY KEY,
@@ -50,8 +45,6 @@ class Database:
                     created_at TIMESTAMP DEFAULT NOW()
                 )
             """)
-            
-            # Таблица запросов
             self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS requests (
                     id SERIAL PRIMARY KEY,
@@ -63,10 +56,31 @@ class Database:
                     created_at TIMESTAMP DEFAULT NOW()
                 )
             """)
-            
-            logger.info("Таблицы успешно созданы")
+            logger.info("Таблицы созданы")
         except Exception as e:
             logger.error(f"Ошибка создания таблиц: {str(e)}")
+        finally:
+            self.disconnect()
+
+    def add_request(self, request_data):
+        query = """
+            INSERT INTO requests 
+            (type, name, phone, question, username)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        try:
+            self.connect()
+            self.cursor.execute(query, (
+                request_data['type'],
+                request_data['name'],
+                request_data['phone'],
+                request_data['question'],
+                request_data.get('username')
+            ))
+            self.connection.commit()
+        except Exception as e:
+            logger.error(f"Ошибка добавления запроса: {str(e)}")
+            raise
         finally:
             self.disconnect()
 
