@@ -67,9 +67,7 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
-    context.user_data.clear()
-    await query.edit_message_text("Введите username ученика (@example):")
+    await query.message.reply_text("Введите username ученика (@example):")  # Используем reply_text вместо edit_message_text
     return ADD_USERNAME
 
 async def add_student_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -181,25 +179,22 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 def get_admin_handler():
-    return [
-        ConversationHandler(
-            entry_points=[CommandHandler('admin', admin_start)],
-            states={
-                ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
-                ADD_USERNAME: [MessageHandler(filters.TEXT, add_student_username)],
-                ADD_FULLNAME: [MessageHandler(filters.TEXT, add_student_fullname)],
-                ADD_PHONE: [MessageHandler(filters.TEXT, add_student_phone)],
-                ADD_CATEGORY: [MessageHandler(filters.TEXT, add_student_category)],
-                ADD_GROUP: [MessageHandler(filters.TEXT, add_student_group)],
-                ADD_PERIOD: [MessageHandler(filters.TEXT, add_student_period)],
-                ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, add_student_exam_theory)],
-                ADD_EXAM_GOS: [MessageHandler(filters.TEXT, add_student_exam_gos)],
-                ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, add_student_exam_practice)],
-                DELETE_STUDENT: [MessageHandler(filters.TEXT, process_delete_student)]
-            },
-            fallbacks=[
-                CommandHandler('cancel', cancel),
-                CallbackQueryHandler(cancel, pattern="^back_")
-            ]
-        )
-    ]
+    return ConversationHandler(
+        entry_points=[CommandHandler('admin', admin_start)],
+        states={
+            ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
+            ADD_USERNAME: [MessageHandler(filters.TEXT, add_student_username)],
+            ADD_FULLNAME: [MessageHandler(filters.TEXT, add_student_fullname)],
+            ADD_PHONE: [MessageHandler(filters.TEXT, add_student_phone)],
+            ADD_CATEGORY: [MessageHandler(filters.TEXT, add_student_category)],
+            ADD_GROUP: [MessageHandler(filters.TEXT, add_student_group)],
+            ADD_PERIOD: [MessageHandler(filters.TEXT, add_student_period)],
+            ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, add_student_exam_theory)],
+            ADD_EXAM_GOS: [MessageHandler(filters.TEXT, add_student_exam_gos)],
+            ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, add_student_exam_practice)],
+            DELETE_STUDENT: [MessageHandler(filters.TEXT, process_delete_student)]
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+        allow_reentry=True  # Разрешить повторный вход в диалог
+    )
+
