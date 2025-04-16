@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -7,18 +8,12 @@ from telegram.ext import (
     ContextTypes
 )
 from config import Config
-from handlers import (
-    handle_categories,
-    show_packages,
-    show_package_details,
-    setup_callbacks_handler,
-    get_admin_handler,
-    handle_contacts,
-    handle_gallery,
-    show_profile
-)
-from database import db
-from handlers.back import back_handler  # Добавьте этот импорт
+from handlers.categories import handle_categories, show_packages, show_package_details
+from handlers.callbacks import setup_callbacks_handler
+from handlers.admin import get_admin_handler
+from handlers.back import back_handler
+from handlers.gallery import handle_gallery
+from handlers.contacts import handle_contacts
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
