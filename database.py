@@ -1,6 +1,8 @@
 import psycopg2
+import psycopg2
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from contextlib import contextmanager  # Добавлен импорт
 from config import Config
 import logging
 
@@ -8,32 +10,32 @@ logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self):
-        self.conn_params = {
-            'dsn': Config.DATABASE_URL
-        }
+        self.connection = None
+        self.cursor = None
 
-    @contextmanager
-    def get_cursor(self):
-        conn = None
+    @contextmanager  # Теперь декоратор определен
+    def connect(self):
+        """Контекстный менеджер для подключения к БД"""
         try:
-            conn = psycopg2.connect(**self.conn_params)
-            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)  # <-- Исправление здесь
-            with conn.cursor() as cursor:
-                yield cursor
-            conn.commit()
+            self.connection = psycopg2.connect(Config.DATABASE_URL)
+            self.connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            self.cursor = self.connection.cursor()
+            logger.info("Успешное подключение к базе данных")
+            yield self.cursor
         except Exception as e:
-            logger.error(f"DB Error: {str(e)}")
-            if conn:
-                conn.rollback()
+            logger.error(f"Ошибка подключения: {str(e)}")
             raise
         finally:
-            if conn:
-                conn.close()
+            if self.connection:
+                self.cursor.close()
+                self.connection.close()
+                logger.info("Соединение с базой данных закрыто")
 
     def create_tables(self):
-        with self.get_cursor() as cur:
+        """Создание таблиц при первом запуске"""
+        with self.connect() as cursor:  # Используем контекстный менеджер
             try:
-                cur.execute("""
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS students (
                         id SERIAL PRIMARY KEY,
                         username VARCHAR(100) UNIQUE NOT NULL,
@@ -48,8 +50,7 @@ class Database:
                         created_at TIMESTAMP DEFAULT NOW()
                     )
                 """)
-                
-                cur.execute("""
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS requests (
                         id SERIAL PRIMARY KEY,
                         type VARCHAR(50) NOT NULL,
@@ -60,9 +61,10 @@ class Database:
                         created_at TIMESTAMP DEFAULT NOW()
                     )
                 """)
-                logger.info("Tables created successfully")
+                logger.info("Таблицы успешно созданы")
             except Exception as e:
-                logger.error(f"Table creation failed: {str(e)}")
+                logger.error(f"Ошибка создания таблиц: {str(e)}")
                 raise
 
 db.create_tables()
+db = Database()
