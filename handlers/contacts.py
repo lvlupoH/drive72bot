@@ -19,8 +19,6 @@ async def handle_contacts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
     
-    
-    
 
 
 
