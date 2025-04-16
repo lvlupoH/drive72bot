@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from telegram import Update, InlineKeyboardButton
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -15,7 +15,7 @@ from handlers.back import back_handler
 from handlers.gallery import handle_gallery
 from handlers.contacts import handle_contacts
 from handlers.profile import show_profile
-from database import db  # Импорт экземпляра db
+from database import db
 
 # Настройка логгирования
 logging.basicConfig(
@@ -35,7 +35,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await update.message.reply_text(
         "🏎️ Добро пожаловать в автошколу Drive!",
-        reply_markup=InlineKeyboardMarkup(keyboard)  # Исправлено на InlineKeyboardMarkup
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 async def post_init(application):
@@ -45,7 +45,7 @@ def main():
     config = Config()
     
     # Создание таблиц в базе данных
-    db.create_tables()  # Явный вызов
+    db.create_tables()
     
     # Создание приложения
     application = Application.builder() \
@@ -59,14 +59,21 @@ def main():
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(show_package_details, pattern="^package_"))
     application.add_handler(setup_callbacks_handler())
-    application.add_handlers(get_admin_handler())
+    
+    # Админ-панель
+    admin_handlers = get_admin_handler()
+    for handler in admin_handlers:
+        application.add_handler(handler)
+    
+    # Галерея и контакты
     application.add_handler(CallbackQueryHandler(handle_gallery, pattern="^gallery$"))
     application.add_handler(CallbackQueryHandler(handle_contacts, pattern="^contacts$"))
+    
+    # Личный кабинет
     application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
+    
+    # Навигация "Назад"
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
-         # Админ-панель
-         admin_handlers = get_admin_handler()
-         for handler in admin_handlers:
 
     # Запуск бота
     application.run_webhook(
@@ -78,4 +85,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
