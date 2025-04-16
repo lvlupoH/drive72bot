@@ -41,4 +41,3 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=text,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="back_main")]])
     )
-    
