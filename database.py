@@ -9,8 +9,7 @@ logger = logging.getLogger(__name__)
 class Database:
     def __init__(self):
         self.conn_params = {
-            'dsn': Config.DATABASE_URL,
-            'isolation_level': ISOLATION_LEVEL_AUTOCOMMIT
+            'dsn': Config.DATABASE_URL
         }
 
     @contextmanager
@@ -18,6 +17,7 @@ class Database:
         conn = None
         try:
             conn = psycopg2.connect(**self.conn_params)
+            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)  # <-- Исправление здесь
             with conn.cursor() as cursor:
                 yield cursor
             conn.commit()
@@ -33,7 +33,6 @@ class Database:
     def create_tables(self):
         with self.get_cursor() as cur:
             try:
-                # Students table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS students (
                         id SERIAL PRIMARY KEY,
@@ -50,7 +49,6 @@ class Database:
                     )
                 """)
                 
-                # Requests table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS requests (
                         id SERIAL PRIMARY KEY,
@@ -67,6 +65,5 @@ class Database:
                 logger.error(f"Table creation failed: {str(e)}")
                 raise
 
-# Initialize database
 db = Database()
 db.create_tables()
