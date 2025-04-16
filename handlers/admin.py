@@ -135,7 +135,7 @@ async def add_student_exam_practice(update: Update, context: ContextTypes.DEFAUL
         conn.commit()
         await update.message.reply_text("✅ Ученик успешно добавлен!")
     except Exception as e:
-        logger.error(f"Ошибка добавления: {str(e)}")
+        logger.error(f"Ошибка добавления: {str(e)}")  # Логируем ошибку
         await update.message.reply_text("❌ Ошибка при добавлении ученика!")
     finally:
         conn.close()
