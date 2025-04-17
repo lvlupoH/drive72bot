@@ -1,6 +1,11 @@
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes
+)
 from config import Config
 from handlers.categories import handle_categories, show_packages, show_package_details
 from handlers.callbacks import setup_callbacks_handler
@@ -28,8 +33,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await update.message.reply_text(
         "🏎️ Добро пожаловать в автошколу Drive!",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+        reply_markup={"inline_keyboard": keyboard})
 
 async def post_init(application):
     await application.bot.set_webhook(Config.WEBHOOK_URL)
@@ -38,30 +42,38 @@ def main():
     config = Config()
     db.create_tables()
     
-    application = Application.builder() \
-        .token(config.TELEGRAM_TOKEN) \
-        .post_init(post_init) \
+    application = (
+        ApplicationBuilder()
+        .token(config.TELEGRAM_TOKEN)
+        .read_timeout(30)
+        .write_timeout(30)
+        .post_init(post_init)
         .build()
+    )
 
+    # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(show_package_details, pattern="^package_"))
     application.add_handler(setup_callbacks_handler())
     
-    admin_handlers = get_admin_handler()
-    for handler in admin_handlers:
+    # Админ-панель
+    for handler in get_admin_handler():
         application.add_handler(handler)
     
+    # Остальные обработчики
     application.add_handler(CallbackQueryHandler(handle_gallery, pattern="^gallery$"))
     application.add_handler(CallbackQueryHandler(handle_contacts, pattern="^contacts$"))
     application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
 
+    # Запуск бота
     application.run_webhook(
         listen="0.0.0.0",
         port=config.PORT,
-        webhook_url=config.WEBHOOK_URL
+        webhook_url=config.WEBHOOK_URL,
+        allowed_updates=Update.ALL_TYPES
     )
 
 if __name__ == "__main__":
