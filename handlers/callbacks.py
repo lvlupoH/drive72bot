@@ -1,5 +1,12 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters, CommandHandler, CallbackQueryHandler
+from telegram.ext import (
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    filters,
+    CommandHandler,
+    CallbackQueryHandler
+)
 from config import Config
 import smtplib
 from email.mime.text import MIMEText
@@ -8,6 +15,7 @@ from datetime import datetime
 from .back import back_handler
 from database import db
 
+# Состояния диалога
 NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
 
@@ -21,13 +29,14 @@ async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         f"📝 {request_type}\n\nВведите ваше ФИО:",
         reply_markup=InlineKeyboardMarkup(keyboard)
-    )
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['name'] = update.message.text
     keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_callback")]]
-    await update.message.reply_text("📱 Введите ваш номер телефона:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        "📱 Введите ваш номер телефона:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -37,7 +46,9 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return PHONE
     context.user_data['phone'] = phone
     keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_callback")]]
-    await update.message.reply_text("❓ Введите ваш вопрос:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        "❓ Введите ваш вопрос:",
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -92,7 +103,9 @@ async def send_email(request_type: str, name: str, phone: str, question: str, us
 
 def setup_callbacks_handler():
     return ConversationHandler(
-        entry_points=[CallbackQueryHandler(start_callback, pattern="^(callback_request|extra_classes)$")],
+        entry_points=[
+            CallbackQueryHandler(start_callback, pattern="^(callback_request|extra_classes)$")
+        ],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
@@ -102,5 +115,6 @@ def setup_callbacks_handler():
             CommandHandler('cancel', lambda update, context: ConversationHandler.END),
             CallbackQueryHandler(back_handler, pattern="^back_")
         ],
+        per_message=True,  # Исправлено
         allow_reentry=True
     )
