@@ -13,11 +13,6 @@ import hashlib
 import logging
 from datetime import datetime
 
-# Настройка логгирования
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
 logger = logging.getLogger(__name__)
 
 # Состояния админ-панели
@@ -35,15 +30,12 @@ logger = logging.getLogger(__name__)
     DELETE_STUDENT
 ) = range(11)
 
-# Пароль администратора: "Drive" (можно изменить)
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
 
 def get_db_connection():
-    """Создает подключение к PostgreSQL"""
     return psycopg2.connect(Config.DATABASE_URL)
 
 async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /admin"""
     if update.effective_user.id != Config.ADMIN_ID:
         await update.message.reply_text("🚫 Доступ запрещен!")
         return ConversationHandler.END
@@ -52,26 +44,21 @@ async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ADMIN_AUTH
 
 async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Проверка пароля администратора"""
     user_input = hashlib.sha256(update.message.text.encode()).hexdigest()
-    logger.info(f"Попытка входа. Введенный хеш: {user_input}")
     
     if user_input != ADMIN_PASSWORD_HASH:
         await update.message.reply_text("❌ Неверный пароль!")
         return ConversationHandler.END
     
-    # Клавиатура админ-панели
     keyboard = [
         [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
         [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
-        [InlineKeyboardButton("🔙 Выход", callback_data="back_main")]
+        [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
     ]
     
     await update.message.reply_text(
-        "⚙️ *Админ-панель*:",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode="Markdown"
-    )
+        "⚙️ Админ-панель:",
+        reply_markup=InlineKeyboardMarkup(keyboard))
     return ConversationHandler.END
 
 # ------------------- Добавление ученика -------------------
@@ -221,15 +208,14 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 def get_admin_handler():
-    """Возвращает обработчики админ-панели"""
     return [
         ConversationHandler(
             entry_points=[CommandHandler('admin', admin_start)],
             states={
-                ADMIN_AUTH: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_auth)],
+                ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
                 ADD_USERNAME: [
                     CallbackQueryHandler(add_student_start, pattern="^add_student$"),
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_username)
+                    MessageHandler(filters.TEXT, add_student_username)
                 ],
                 ADD_FULLNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_fullname)],
                 ADD_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_phone)],
@@ -243,8 +229,101 @@ def get_admin_handler():
             },
             fallbacks=[
                 CommandHandler('cancel', cancel),
-                CallbackQueryHandler(cancel, pattern="^back_main")
+                CallbackQueryHandler(cancel, pattern="^back_")
             ],
+            per_message=True,  # Исправлено
+            allow_reentry=True
+        )
+    ]
+    
+    
+    
+    
+    
+    
+    
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    CommandHandler,
+    CallbackQueryHandler,
+    filters
+)
+from config import Config
+import psycopg2
+import hashlib
+import logging
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+# Состояния админ-панели
+(
+    ADMIN_AUTH,
+    ADD_USERNAME, 
+    ADD_FULLNAME, 
+    ADD_PHONE,
+    ADD_CATEGORY, 
+    ADD_GROUP, 
+    ADD_PERIOD,
+    ADD_EXAM_THEORY, 
+    ADD_EXAM_GOS,
+    ADD_EXAM_PRACTICE,
+    DELETE_STUDENT
+) = range(11)
+
+ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
+
+def get_db_connection():
+    return psycopg2.connect(Config.DATABASE_URL)
+
+async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != Config.ADMIN_ID:
+        await update.message.reply_text("🚫 Доступ запрещен!")
+        return ConversationHandler.END
+    
+    await update.message.reply_text("🔑 Введите пароль администратора:")
+    return ADMIN_AUTH
+
+async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_input = hashlib.sha256(update.message.text.encode()).hexdigest()
+    
+    if user_input != ADMIN_PASSWORD_HASH:
+        await update.message.reply_text("❌ Неверный пароль!")
+        return ConversationHandler.END
+    
+    keyboard = [
+        [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
+        [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
+        [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
+    ]
+    
+    await update.message.reply_text(
+        "⚙️ Админ-панель:",
+        reply_markup=InlineKeyboardMarkup(keyboard))
+    return ConversationHandler.END
+
+# ... (остальные функции добавления/удаления учеников из предыдущего ответа)
+
+def get_admin_handler():
+    return [
+        ConversationHandler(
+            entry_points=[CommandHandler('admin', admin_start)],
+            states={
+                ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
+                ADD_USERNAME: [
+                    CallbackQueryHandler(add_student_start, pattern="^add_student$"),
+                    MessageHandler(filters.TEXT, add_student_username)
+                ],
+                # ... (остальные состояния)
+            },
+            fallbacks=[
+                CommandHandler('cancel', cancel),
+                CallbackQueryHandler(cancel, pattern="^back_")
+            ],
+            per_message=True,  # Исправлено
             allow_reentry=True
         )
     ]
