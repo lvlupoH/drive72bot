@@ -29,6 +29,7 @@ async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         f"📝 {request_type}\n\nВведите ваше ФИО:",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return NAME
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
