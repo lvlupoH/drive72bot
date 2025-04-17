@@ -38,6 +38,7 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📱 Введите ваш номер телефона:",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
