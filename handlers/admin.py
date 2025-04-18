@@ -12,7 +12,6 @@ from models.database import db
 import hashlib
 import re
 import logging
-from .back import back_handler
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
     ADD_CATEGORY, ADD_GROUP, ADD_PERIOD,
     ADD_EXAM_THEORY, ADD_EXAM_GOS, ADD_EXAM_PRACTICE,
     DELETE_STUDENT
-) = range(11)
+) = range(10)
 
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
 MAX_LOGIN_ATTEMPTS = 3
@@ -63,6 +62,23 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⚙️ Админ-панель:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+    return ConversationHandler.END
+
+async def handle_admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data == "students_list":
+        students = db.get_all_students()
+        text = "📋 Список учеников:\n\n" + "\n".join([f"@{s[1]} - {s[2]}" for s in students])
+        await query.edit_message_text(text)
+        
+    elif query.data == "add_student":
+        await add_student_start(update, context)
+        
+    elif query.data == "delete_student":
+        await delete_student(update, context)
+    
     return ConversationHandler.END
 
 async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -153,10 +169,7 @@ async def add_student_exam_practice(update: Update, context: ContextTypes.DEFAUL
 async def delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text="Введите username ученика для удаления:"
-    )
+    await query.edit_message_text("Введите username ученика для удаления:")
     return DELETE_STUDENT
 
 async def process_delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -170,27 +183,27 @@ async def process_delete_student(update: Update, context: ContextTypes.DEFAULT_T
     return ConversationHandler.END
 
 def get_admin_handler():
-    return [ConversationHandler(
-        entry_points=[
-            CommandHandler('admin', admin_start),
-            CallbackQueryHandler(add_student_start, pattern="^add_student$")
-        ],
-        states={
-            ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
-            ADD_USERNAME: [MessageHandler(filters.TEXT, add_student_username)],
-            ADD_FULLNAME: [MessageHandler(filters.TEXT, add_student_fullname)],
-            ADD_PHONE: [MessageHandler(filters.TEXT, add_student_phone)],
-            ADD_CATEGORY: [MessageHandler(filters.TEXT, add_student_category)],
-            ADD_GROUP: [MessageHandler(filters.TEXT, add_student_group)],
-            ADD_PERIOD: [MessageHandler(filters.TEXT, add_student_period)],
-            ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, add_student_exam_theory)],
-            ADD_EXAM_GOS: [MessageHandler(filters.TEXT, add_student_exam_gos)],
-            ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, add_student_exam_practice)],
-            DELETE_STUDENT: [MessageHandler(filters.TEXT, process_delete_student)]
-        },
-        fallbacks=[
-            CommandHandler('cancel', lambda update, context: ConversationHandler.END),
-            CallbackQueryHandler(back_handler, pattern="^back_")
-        ],
-        per_message=False
-    )]
+    return [
+        ConversationHandler(
+            entry_points=[CommandHandler('admin', admin_start)],
+            states={
+                ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
+                ADD_USERNAME: [MessageHandler(filters.TEXT, add_student_username)],
+                ADD_FULLNAME: [MessageHandler(filters.TEXT, add_student_fullname)],
+                ADD_PHONE: [MessageHandler(filters.TEXT, add_student_phone)],
+                ADD_CATEGORY: [MessageHandler(filters.TEXT, add_student_category)],
+                ADD_GROUP: [MessageHandler(filters.TEXT, add_student_group)],
+                ADD_PERIOD: [MessageHandler(filters.TEXT, add_student_period)],
+                ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, add_student_exam_theory)],
+                ADD_EXAM_GOS: [MessageHandler(filters.TEXT, add_student_exam_gos)],
+                ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, add_student_exam_practice)],
+                DELETE_STUDENT: [MessageHandler(filters.TEXT, process_delete_student)]
+            },
+            fallbacks=[
+                CommandHandler('cancel', lambda update, context: ConversationHandler.END),
+                CallbackQueryHandler(back_handler, pattern="^back_")
+            ],
+            per_message=False
+        ),
+        CallbackQueryHandler(handle_admin_buttons, pattern="^(students_list|add_student|delete_student)$")
+    ]
