@@ -1,6 +1,6 @@
 from telegram import Update, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters, CommandHandler, CallbackQueryHandler
-from config import Config
+from utils.config import Config
 import smtplib
 from email.mime.text import MIMEText
 import logging
