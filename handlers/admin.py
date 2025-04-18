@@ -62,6 +62,7 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "⚙️ Админ-панель:",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return ConversationHandler.END
 
 async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
