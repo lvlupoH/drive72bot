@@ -1,7 +1,7 @@
 import psycopg2
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from config import Config
+from utils.config import Config
 import logging
 
 logger = logging.getLogger(__name__)
