@@ -12,6 +12,7 @@ from models.database import db
 import hashlib
 import re
 import logging
+from .back import back_handler  # Импорт обработчика "Назад"
 
 logger = logging.getLogger(__name__)
 
