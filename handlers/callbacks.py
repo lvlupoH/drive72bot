@@ -1,21 +1,12 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ContextTypes,
-    ConversationHandler,
-    MessageHandler,
-    filters,
-    CommandHandler,
-    CallbackQueryHandler
-)
+from telegram import Update, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters, CommandHandler, CallbackQueryHandler
 from config import Config
 import smtplib
 from email.mime.text import MIMEText
 import logging
 from datetime import datetime
 from .back import back_handler
-from database import db
 
-# Состояния диалога
 NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
 
@@ -42,15 +33,12 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    phone = update.message.text
-    if not phone.replace('+', '').isdigit():
-        await update.message.reply_text("❌ Некорректный номер телефона!")
-        return PHONE
-    context.user_data['phone'] = phone
+    context.user_data['phone'] = update.message.text
     keyboard = [[InlineKeyboardButton("🔙 Назад", callback_data="back_callback")]]
     await update.message.reply_text(
         "❓ Введите ваш вопрос:",
-        reply_markup=InlineKeyboardMarkup(keyboard))
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     return QUESTION
 
 async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -59,22 +47,15 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         await send_email(
-            request_type=context.user_data['request_type'],
-            name=context.user_data['name'],
-            phone=context.user_data['phone'],
-            question=context.user_data['question'],
-            username=user.username
+            context.user_data['request_type'],
+            context.user_data['name'],
+            context.user_data['phone'],
+            context.user_data['question'],
+            user.username
         )
-        db.add_request({
-            'type': context.user_data['request_type'],
-            'name': context.user_data['name'],
-            'phone': context.user_data['phone'],
-            'question': context.user_data['question'],
-            'username': user.username
-        })
         await update.message.reply_text("✅ Данные отправлены администратору!")
     except Exception as e:
-        logger.error(f"Ошибка: {e}", exc_info=True)
+        logger.error(f"Ошибка: {e}")
         await update.message.reply_text("❌ Ошибка отправки!")
     
     context.user_data.clear()
@@ -95,28 +76,19 @@ async def send_email(request_type: str, name: str, phone: str, question: str, us
     msg['From'] = Config.EMAIL_USER
     msg['To'] = Config.ADMIN_EMAIL
 
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
-            server.send_message(msg)
-    except Exception as e:
-        logger.error(f"Ошибка SMTP: {str(e)}")
-        raise
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        server.login(Config.EMAIL_USER, Config.EMAIL_PASSWORD)
+        server.send_message(msg)
 
 def setup_callbacks_handler():
     return ConversationHandler(
-        entry_points=[
-            CallbackQueryHandler(start_callback, pattern="^(callback_request|extra_classes)$")
-        ],
+        entry_points=[CallbackQueryHandler(start_callback, pattern="^(callback_request|extra_classes)$")],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
-        fallbacks=[
-            CommandHandler('cancel', lambda update, context: ConversationHandler.END),
-            CallbackQueryHandler(back_handler, pattern="^back_")
-        ],
-        per_message=True,  # Исправлено
+        fallbacks=[CommandHandler('cancel', lambda update, context: ConversationHandler.END),
+                   CallbackQueryHandler(back_handler, pattern="^back_")],
         allow_reentry=True
     )
