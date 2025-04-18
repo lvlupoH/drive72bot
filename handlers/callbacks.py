@@ -5,7 +5,7 @@ import smtplib
 from email.mime.text import MIMEText
 import logging
 from datetime import datetime
-from .back import back_handler
+from handlers.back import back_handler
 
 NAME, PHONE, QUESTION = range(3)
 logger = logging.getLogger(__name__)
