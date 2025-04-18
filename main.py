@@ -6,7 +6,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes
 )
-from utils.config import Config
+from config import Config
 from handlers.categories import handle_categories, show_packages, show_package_details
 from handlers.callbacks import setup_callbacks_handler
 from handlers.admin import get_admin_handler
@@ -32,12 +32,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await update.message.reply_text(
         "🏎️ Добро пожаловать в автошколу Drive!",
-        reply_markup={"inline_keyboard": keyboard}
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+async def post_init(application):
+    await application.bot.set_webhook(Config.WEBHOOK_URL)
+
 def main():
-    application = Application.builder().token(Config.TELEGRAM_TOKEN).build()
-    
+    application = Application.builder() \
+        .token(Config.TELEGRAM_TOKEN) \
+        .post_init(post_init) \
+        .build()
+
     # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
@@ -49,15 +55,12 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_contacts, pattern="^contacts$"))
     application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
-    
-    # Запуск бота
-    application.run_polling()
-    
-    # Запуск через вебхук
+
+    # Запуск через вебхуки
     application.run_webhook(
         listen="0.0.0.0",
-        port=config.PORT,
-        webhook_url=config.WEBHOOK_URL,
+        port=Config.PORT,
+        webhook_url=Config.WEBHOOK_URL,
         allowed_updates=Update.ALL_TYPES
     )
 
