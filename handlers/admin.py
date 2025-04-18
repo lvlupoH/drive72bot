@@ -69,3 +69,4 @@ async def show_student_details(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.edit_message_text(
         text.strip(),
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
