@@ -1,14 +1,29 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CommandHandler, CallbackQueryHandler, filters
+from telegram.ext import (
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    CommandHandler,
+    CallbackQueryHandler,
+    filters
+)
 from utils.config import Config
 from models.database import db
-from .back import back_handler
 import hashlib
-import logging
 import re
+import logging
 
 logger = logging.getLogger(__name__)
-ADMIN_AUTH, ADD_USERNAME, ADD_FULLNAME, ADD_PHONE, ADD_CATEGORY, ADD_GROUP, ADD_PERIOD, ADD_EXAM_THEORY, ADD_EXAM_GOS, ADD_EXAM_PRACTICE, DELETE_STUDENT = range(11)
+
+# Состояния админ-панели
+(
+    ADMIN_AUTH,
+    ADD_USERNAME, ADD_FULLNAME, ADD_PHONE,
+    ADD_CATEGORY, ADD_GROUP, ADD_PERIOD,
+    ADD_EXAM_THEORY, ADD_EXAM_GOS, ADD_EXAM_PRACTICE,
+    DELETE_STUDENT
+) = range(10)
+
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
 MAX_LOGIN_ATTEMPTS = 3
 
@@ -43,7 +58,10 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
         [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
     ]
-    await update.message.reply_text("⚙️ Админ-панель:", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    await update.message.reply_text(
+        "⚙️ Админ-панель:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     return ConversationHandler.END
 
 async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
