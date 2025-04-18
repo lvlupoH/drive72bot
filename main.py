@@ -1,12 +1,12 @@
 import logging
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
     ContextTypes
 )
-from config import Config
+from utils.config import Config  # Исправленный импорт
 from handlers.categories import handle_categories, show_packages, show_package_details
 from handlers.callbacks import setup_callbacks_handler
 from handlers.admin import get_admin_handler
