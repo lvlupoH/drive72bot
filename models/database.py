@@ -1,5 +1,4 @@
 import psycopg2
-from psycopg2 import sql
 from utils.config import Config
 import logging
 
@@ -16,6 +15,19 @@ class Database:
         except Exception as e:
             logger.error(f"Ошибка подключения: {str(e)}")
             raise
+
+    def get_all_students(self):
+        try:
+            self.connect()
+            with self.conn.cursor() as cur:
+                cur.execute("SELECT * FROM students")
+                return cur.fetchall()
+        except Exception as e:
+            logger.error(f"Ошибка: {str(e)}")
+            return []
+        finally:
+            if self.conn:
+                self.conn.close()
 
     def get_student(self, username: str):
         try:
