@@ -4,13 +4,9 @@ from telegram.ext import ContextTypes
 async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    data_parts = query.data.split('_')
-    action = data_parts[1] if len(data_parts) >= 2 else "main"
+    data = query.data.split('_')
     
-    # Очистка временных данных пользователя
-    context.user_data.clear()
-    
-    if action == "main":
+    if data[1] == "main":
         keyboard = [
             [InlineKeyboardButton("Категории", callback_data="categories")],
             [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
@@ -19,28 +15,14 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Галерея", callback_data="gallery")],
             [InlineKeyboardButton("Личный кабинет", callback_data="profile")]
         ]
-        await query.edit_message_text(
-            "🏠 Главное меню:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    elif action == "categories":
+        await query.edit_message_text("🏠 Главное меню:", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif data[1] == "categories":
         keyboard = [
-            [InlineKeyboardButton("Категория А, А1", callback_data="cat_a")],
+            [InlineKeyboardButton("Категория А", callback_data="cat_a")],
             [InlineKeyboardButton("Категория В", callback_data="cat_b")],
             [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
         ]
-        await query.edit_message_text(
-            "🏍 Выберите категорию:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    elif action == "package":
-        category = data_parts[2]
-        keyboard = [
-            [InlineKeyboardButton("Тариф 1", callback_data=f"package_{category}_МОТО1")],
-            [InlineKeyboardButton("Тариф 2", callback_data=f"package_{category}_МОТО2")],
-            [InlineKeyboardButton("🔙 Назад", callback_data=f"cat_{category}")]
-        ]
-        await query.edit_message_text(
-            f"📦 Тарифы категории {CATEGORIES[category]['title']}:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        await query.edit_message_text("🏍 Выберите категорию:", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    context.user_data.clear()
