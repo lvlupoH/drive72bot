@@ -32,6 +32,7 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "🏍 Выберите категорию:",
             reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     elif action == "package":
         category = data_parts[2]
         keyboard = [
