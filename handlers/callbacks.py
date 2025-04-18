@@ -90,6 +90,5 @@ def setup_callbacks_handler():
         },
         fallbacks=[CommandHandler('cancel', lambda update, context: ConversationHandler.END),
                    CallbackQueryHandler(back_handler, pattern="^back_")],
-        per_message=True,
         allow_reentry=True
     )
