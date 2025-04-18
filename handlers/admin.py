@@ -12,18 +12,17 @@ from models.database import db
 import hashlib
 import re
 import logging
-from .back import back_handler  # Добавьте эту строку в начало файла
+from .back import back_handler
 
 logger = logging.getLogger(__name__)
 
-# Состояния админ-панели
 (
     ADMIN_AUTH,
     ADD_USERNAME, ADD_FULLNAME, ADD_PHONE,
     ADD_CATEGORY, ADD_GROUP, ADD_PERIOD,
     ADD_EXAM_THEORY, ADD_EXAM_GOS, ADD_EXAM_PRACTICE,
     DELETE_STUDENT
-) = range(11)  # Исправлено: range(10) → range(11)
+) = range(10)
 
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
 MAX_LOGIN_ATTEMPTS = 3
@@ -70,7 +69,6 @@ async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     context.user_data.clear()
-    # Отправляем сообщение через bot.send_message вместо edit_message_text
     await context.bot.send_message(
         chat_id=query.message.chat_id,
         text="Введите username ученика (@example):"
@@ -155,7 +153,10 @@ async def add_student_exam_practice(update: Update, context: ContextTypes.DEFAUL
 async def delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text("Введите username ученика для удаления:")
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text="Введите username ученика для удаления:"
+    )
     return DELETE_STUDENT
 
 async def process_delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -170,7 +171,10 @@ async def process_delete_student(update: Update, context: ContextTypes.DEFAULT_T
 
 def get_admin_handler():
     return [ConversationHandler(
-        entry_points=[CommandHandler('admin', admin_start)],
+        entry_points=[
+            CommandHandler('admin', admin_start),
+            CallbackQueryHandler(add_student_start, pattern="^add_student$")
+        ],
         states={
             ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
             ADD_USERNAME: [MessageHandler(filters.TEXT, add_student_username)],
@@ -188,7 +192,5 @@ def get_admin_handler():
             CommandHandler('cancel', lambda update, context: ConversationHandler.END),
             CallbackQueryHandler(back_handler, pattern="^back_")
         ],
-        # Добавить параметр per_message=False
         per_message=False
     )]
-    
