@@ -1,329 +1,166 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ContextTypes,
-    ConversationHandler,
-    MessageHandler,
-    CommandHandler,
-    CallbackQueryHandler,
-    filters
-)
+from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CommandHandler, CallbackQueryHandler, filters
 from config import Config
-import psycopg2
+from models.database import db
 import hashlib
 import logging
-from datetime import datetime
+import re
 
 logger = logging.getLogger(__name__)
-
-# Состояния админ-панели
-(
-    ADMIN_AUTH,
-    ADD_USERNAME, 
-    ADD_FULLNAME, 
-    ADD_PHONE,
-    ADD_CATEGORY, 
-    ADD_GROUP, 
-    ADD_PERIOD,
-    ADD_EXAM_THEORY, 
-    ADD_EXAM_GOS,
-    ADD_EXAM_PRACTICE,
-    DELETE_STUDENT
-) = range(11)
-
+ADMIN_AUTH, ADD_USERNAME, ADD_FULLNAME, ADD_PHONE, ADD_CATEGORY, ADD_GROUP, ADD_PERIOD, ADD_EXAM_THEORY, ADD_EXAM_GOS, ADD_EXAM_PRACTICE, DELETE_STUDENT = range(11)
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
+MAX_LOGIN_ATTEMPTS = 3
 
-def get_db_connection():
-    return psycopg2.connect(Config.DATABASE_URL)
+def validate_phone(phone: str) -> bool:
+    return re.match(r'^\+?[1-9]\d{9,14}$', phone) is not None
+
+def validate_date(date: str) -> bool:
+    return re.match(r'\d{2}\.\d{2}\.\d{4}', date) is not None
 
 async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != Config.ADMIN_ID:
         await update.message.reply_text("🚫 Доступ запрещен!")
         return ConversationHandler.END
-    
+    context.user_data['login_attempts'] = 0
     await update.message.reply_text("🔑 Введите пароль администратора:")
     return ADMIN_AUTH
 
 async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_input = hashlib.sha256(update.message.text.encode()).hexdigest()
+    context.user_data['login_attempts'] += 1
+    if context.user_data['login_attempts'] > MAX_LOGIN_ATTEMPTS:
+        await update.message.reply_text("🚫 Превышено число попыток!")
+        return ConversationHandler.END
     
+    user_input = hashlib.sha256(update.message.text.encode()).hexdigest()
     if user_input != ADMIN_PASSWORD_HASH:
         await update.message.reply_text("❌ Неверный пароль!")
         return ConversationHandler.END
     
     keyboard = [
+        [InlineKeyboardButton("📋 Список учеников", callback_data="students_list")],
         [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
         [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
         [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
     ]
-    
-    await update.message.reply_text(
-        "⚙️ Админ-панель:",
-        reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text("⚙️ Админ-панель:", reply_markup=InlineKeyboardMarkup(keyboard))
     return ConversationHandler.END
 
-# ------------------- Добавление ученика -------------------
 async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Начало добавления ученика"""
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text("✏️ Введите *username* ученика (например: @ivanov):", parse_mode="Markdown")
+    context.user_data.clear()
+    await query.edit_message_text("Введите username ученика (@example):")
     return ADD_USERNAME
 
 async def add_student_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['username'] = update.message.text.strip().lstrip('@')
-    await update.message.reply_text("👤 Введите *ФИО* ученика:", parse_mode="Markdown")
+    context.user_data['username'] = update.message.text
+    await update.message.reply_text("Введите ФИО ученика:")
     return ADD_FULLNAME
 
 async def add_student_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['fullname'] = update.message.text.strip()
-    await update.message.reply_text("📱 Введите *номер телефона* (например: +79123456789):", parse_mode="Markdown")
+    context.user_data['fullname'] = update.message.text
+    await update.message.reply_text("Введите номер телефона:")
     return ADD_PHONE
 
 async def add_student_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    phone = update.message.text.strip()
-    if not phone.replace('+', '').isdigit():
-        await update.message.reply_text("❌ Некорректный номер! Введите еще раз:")
+    if not validate_phone(update.message.text):
+        await update.message.reply_text("❌ Неверный формат телефона!")
         return ADD_PHONE
-    context.user_data['phone'] = phone
-    await update.message.reply_text("🏍 Введите *категорию* (A/B/C/D):", parse_mode="Markdown")
+    context.user_data['phone'] = update.message.text
+    await update.message.reply_text("Введите категорию (A/B/C/D):")
     return ADD_CATEGORY
 
 async def add_student_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    category = update.message.text.strip().upper()
-    if category not in ('A', 'B', 'C', 'D'):
-        await update.message.reply_text("❌ Недопустимая категория! Введите A/B/C/D:")
-        return ADD_CATEGORY
-    context.user_data['category'] = category
-    await update.message.reply_text("🔢 Введите *номер группы*:", parse_mode="Markdown")
+    context.user_data['category'] = update.message.text.upper()
+    await update.message.reply_text("Введите номер группы:")
     return ADD_GROUP
 
 async def add_student_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['group'] = update.message.text.strip()
-    await update.message.reply_text("📅 Введите *период обучения* (например: 01.09.2023-30.05.2024):", parse_mode="Markdown")
+    context.user_data['group'] = update.message.text
+    await update.message.reply_text("Введите период обучения (например: 01.09.2023-30.05.2024):")
     return ADD_PERIOD
 
 async def add_student_period(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['period'] = update.message.text.strip()
-    await update.message.reply_text("📝 Введите *дату внутреннего теоретического экзамена* (ДД.ММ.ГГГГ):", parse_mode="Markdown")
+    context.user_data['period'] = update.message.text
+    await update.message.reply_text("Введите дату внутреннего теоретического экзамена (ДД.ММ.ГГГГ):")
     return ADD_EXAM_THEORY
 
 async def add_student_exam_theory(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    date_str = update.message.text.strip()
-    try:
-        datetime.strptime(date_str, "%d.%m.%Y")
-        context.user_data['exam_theory'] = date_str
-        await update.message.reply_text("📝 Введите *дату гос. теоретического экзамена* (ДД.ММ.ГГГГ):", parse_mode="Markdown")
-        return ADD_EXAM_GOS
-    except ValueError:
-        await update.message.reply_text("❌ Неверный формат даты! Используйте ДД.ММ.ГГГГ:")
+    if not validate_date(update.message.text):
+        await update.message.reply_text("❌ Неверный формат даты!")
         return ADD_EXAM_THEORY
+    context.user_data['exam_theory'] = update.message.text
+    await update.message.reply_text("Введите дату гос. теоретического экзамена (ДД.ММ.ГГГГ):")
+    return ADD_EXAM_GOS
 
 async def add_student_exam_gos(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    date_str = update.message.text.strip()
-    try:
-        datetime.strptime(date_str, "%d.%m.%Y")
-        context.user_data['exam_gos'] = date_str
-        await update.message.reply_text("📝 Введите *дату практического экзамена* (ДД.ММ.ГГГГ):", parse_mode="Markdown")
-        return ADD_EXAM_PRACTICE
-    except ValueError:
-        await update.message.reply_text("❌ Неверный формат даты! Используйте ДД.ММ.ГГГГ:")
+    if not validate_date(update.message.text):
+        await update.message.reply_text("❌ Неверный формат даты!")
         return ADD_EXAM_GOS
+    context.user_data['exam_gos'] = update.message.text
+    await update.message.reply_text("Введите дату практического экзамена (ДД.ММ.ГГГГ):")
+    return ADD_EXAM_PRACTICE
 
 async def add_student_exam_practice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    date_str = update.message.text.strip()
-    conn = None
-    try:
-        exam_practice = datetime.strptime(date_str, "%d.%m.%Y").date()
-        exam_theory = datetime.strptime(context.user_data['exam_theory'], "%d.%m.%Y").date()
-        exam_gos = datetime.strptime(context.user_data['exam_gos'], "%d.%m.%Y").date()
-        
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO students 
-            (username, fullname, phone, category, group_num, 
-            period, exam_theory, exam_gos, exam_practice)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            context.user_data['username'],
-            context.user_data['fullname'],
-            context.user_data['phone'],
-            context.user_data['category'],
-            context.user_data['group'],
-            context.user_data['period'],
-            exam_theory,
-            exam_gos,
-            exam_practice
-        ))
-        conn.commit()
-        await update.message.reply_text("✅ *Ученик успешно добавлен!*", parse_mode="Markdown")
-        
-    except ValueError:
-        await update.message.reply_text("❌ Ошибка в формате даты!")
-    except psycopg2.IntegrityError:
-        await update.message.reply_text("❌ Ученик с таким username уже существует!")
-    except Exception as e:
-        logger.error(f"Ошибка: {str(e)}", exc_info=True)
-        await update.message.reply_text("❌ Произошла ошибка при добавлении!")
-    finally:
-        if conn:
-            conn.close()
-        context.user_data.clear()
+    if not validate_date(update.message.text):
+        await update.message.reply_text("❌ Неверный формат даты!")
+        return ADD_EXAM_PRACTICE
+    context.user_data['exam_practice'] = update.message.text
     
-    return ConversationHandler.END
-
-# ------------------- Удаление ученика -------------------
-async def delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text("🗑 Введите *username* ученика для удаления:", parse_mode="Markdown")
-    return DELETE_STUDENT
-
-async def process_delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    username = update.message.text.strip().lstrip('@')
-    conn = None
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("DELETE FROM students WHERE username = %s", (username,))
-        conn.commit()
-        
-        if cur.rowcount == 0:
-            await update.message.reply_text("❌ Ученик не найден!")
-        else:
-            await update.message.reply_text(f"✅ Ученик @{username} удален!")
+        db.add_student({
+            'username': context.user_data['username'],
+            'fullname': context.user_data['fullname'],
+            'phone': context.user_data['phone'],
+            'category': context.user_data['category'],
+            'group_num': context.user_data['group'],
+            'period': context.user_data['period'],
+            'exam_theory': context.user_data['exam_theory'],
+            'exam_gos': context.user_data['exam_gos'],
+            'exam_practice': context.user_data['exam_practice']
+        })
+        await update.message.reply_text("✅ Ученик успешно добавлен!")
     except Exception as e:
-        logger.error(f"Ошибка: {str(e)}", exc_info=True)
-        await update.message.reply_text("❌ Ошибка при удалении!")
-    finally:
-        if conn:
-            conn.close()
+        logger.error(f"Ошибка: {str(e)}")
+        await update.message.reply_text("❌ Ошибка при добавлении ученика!")
     
-    return ConversationHandler.END
-
-# ------------------- Отмена действий -------------------
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🚫 Действие отменено")
     context.user_data.clear()
     return ConversationHandler.END
 
-def get_admin_handler():
-    return [
-        ConversationHandler(
-            entry_points=[CommandHandler('admin', admin_start)],
-            states={
-                ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
-                ADD_USERNAME: [
-                    CallbackQueryHandler(add_student_start, pattern="^add_student$"),
-                    MessageHandler(filters.TEXT, add_student_username)
-                ],
-                ADD_FULLNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_fullname)],
-                ADD_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_phone)],
-                ADD_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_category)],
-                ADD_GROUP: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_group)],
-                ADD_PERIOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_period)],
-                ADD_EXAM_THEORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_exam_theory)],
-                ADD_EXAM_GOS: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_exam_gos)],
-                ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_student_exam_practice)],
-                DELETE_STUDENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_delete_student)]
-            },
-            fallbacks=[
-                CommandHandler('cancel', cancel),
-                CallbackQueryHandler(cancel, pattern="^back_")
-            ],
-            per_message=True,  # Исправлено
-            allow_reentry=True
-        )
-    ]
-    
-    
-    
-    
-    
-    
-    
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ContextTypes,
-    ConversationHandler,
-    MessageHandler,
-    CommandHandler,
-    CallbackQueryHandler,
-    filters
-)
-from config import Config
-import psycopg2
-import hashlib
-import logging
-from datetime import datetime
+async def delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("Введите username ученика для удаления:")
+    return DELETE_STUDENT
 
-logger = logging.getLogger(__name__)
-
-# Состояния админ-панели
-(
-    ADMIN_AUTH,
-    ADD_USERNAME, 
-    ADD_FULLNAME, 
-    ADD_PHONE,
-    ADD_CATEGORY, 
-    ADD_GROUP, 
-    ADD_PERIOD,
-    ADD_EXAM_THEORY, 
-    ADD_EXAM_GOS,
-    ADD_EXAM_PRACTICE,
-    DELETE_STUDENT
-) = range(11)
-
-ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
-
-def get_db_connection():
-    return psycopg2.connect(Config.DATABASE_URL)
-
-async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != Config.ADMIN_ID:
-        await update.message.reply_text("🚫 Доступ запрещен!")
-        return ConversationHandler.END
-    
-    await update.message.reply_text("🔑 Введите пароль администратора:")
-    return ADMIN_AUTH
-
-async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_input = hashlib.sha256(update.message.text.encode()).hexdigest()
-    
-    if user_input != ADMIN_PASSWORD_HASH:
-        await update.message.reply_text("❌ Неверный пароль!")
-        return ConversationHandler.END
-    
-    keyboard = [
-        [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
-        [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
-        [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
-    ]
-    
-    await update.message.reply_text(
-        "⚙️ Админ-панель:",
-        reply_markup=InlineKeyboardMarkup(keyboard))
+async def process_delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.message.text
+    try:
+        db.delete_student(username)
+        await update.message.reply_text("✅ Ученик успешно удален!")
+    except Exception as e:
+        logger.error(f"Ошибка: {str(e)}")
+        await update.message.reply_text("❌ Ошибка при удалении!")
     return ConversationHandler.END
 
-# ... (остальные функции добавления/удаления учеников из предыдущего ответа)
-
 def get_admin_handler():
-    return [
-        ConversationHandler(
-            entry_points=[CommandHandler('admin', admin_start)],
-            states={
-                ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
-                ADD_USERNAME: [
-                    CallbackQueryHandler(add_student_start, pattern="^add_student$"),
-                    MessageHandler(filters.TEXT, add_student_username)
-                ],
-                # ... (остальные состояния)
-            },
-            fallbacks=[
-                CommandHandler('cancel', cancel),
-                CallbackQueryHandler(cancel, pattern="^back_")
-            ],
-            per_message=True,  # Исправлено
-            allow_reentry=True
-        )
-    ]
+    return [ConversationHandler(
+        entry_points=[CommandHandler('admin', admin_start)],
+        states={
+            ADMIN_AUTH: [MessageHandler(filters.TEXT, admin_auth)],
+            ADD_USERNAME: [MessageHandler(filters.TEXT, add_student_username)],
+            ADD_FULLNAME: [MessageHandler(filters.TEXT, add_student_fullname)],
+            ADD_PHONE: [MessageHandler(filters.TEXT, add_student_phone)],
+            ADD_CATEGORY: [MessageHandler(filters.TEXT, add_student_category)],
+            ADD_GROUP: [MessageHandler(filters.TEXT, add_student_group)],
+            ADD_PERIOD: [MessageHandler(filters.TEXT, add_student_period)],
+            ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, add_student_exam_theory)],
+            ADD_EXAM_GOS: [MessageHandler(filters.TEXT, add_student_exam_gos)],
+            ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, add_student_exam_practice)],
+            DELETE_STUDENT: [MessageHandler(filters.TEXT, process_delete_student)]
+        },
+        fallbacks=[
+            CommandHandler('cancel', lambda update, context: ConversationHandler.END),
+            CallbackQueryHandler(back_handler, pattern="^back_")
+        ]
+    )]
