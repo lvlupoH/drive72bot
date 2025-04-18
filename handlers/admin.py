@@ -1,6 +1,21 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CallbackQueryHandler
-from models.database import db
+from telegram.ext import (
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    CommandHandler,
+    CallbackQueryHandler,
+    filters
+)
+from models import db  # Исправленный импорт
+from utils.config import Config
+import hashlib
+import re
+import logging
+
+logger = logging.getLogger(__name__)
+
+# ... (остальной код обработчиков без изменений)
 
 async def show_groups(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
