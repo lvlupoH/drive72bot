@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
-import psycopg2
 from config import Config
+import psycopg2
 
 async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -20,7 +20,6 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     text = f"""
     👤 Личный кабинет:
-    
     Username: @{student[1]}
     ФИО: {student[2]}
     Телефон: {student[3]}
@@ -36,7 +35,6 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     🏫 Адреса автошколы:
     {Config.SCHOOL_ADDRESS}
     """
-    
     await query.edit_message_text(
         text=text,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="back_main")]])
