@@ -44,6 +44,10 @@ def main():
         .post_init(post_init) \
         .build()
 
+    # Регистрация админ-обработчиков
+    for handler in get_admin_handler():
+        application.add_handler(handler)
+
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
