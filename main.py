@@ -6,7 +6,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes
 )
-from utils.config import Config  # Исправленный импорт
+from utils.config import Config
 from handlers.categories import handle_categories, show_packages, show_package_details
 from handlers.callbacks import setup_callbacks_handler
 from handlers.admin import get_admin_handler
@@ -44,7 +44,6 @@ def main():
         .post_init(post_init) \
         .build()
 
-    # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
@@ -56,7 +55,6 @@ def main():
     application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
 
-    # Запуск через вебхуки
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
