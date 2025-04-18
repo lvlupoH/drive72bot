@@ -70,7 +70,11 @@ async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     context.user_data.clear()
-    await query.edit_message_text("Введите username ученика (@example):")
+    # Отправляем сообщение через bot.send_message вместо edit_message_text
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text="Введите username ученика (@example):"
+    )
     return ADD_USERNAME
 
 async def add_student_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -183,5 +187,8 @@ def get_admin_handler():
         fallbacks=[
             CommandHandler('cancel', lambda update, context: ConversationHandler.END),
             CallbackQueryHandler(back_handler, pattern="^back_")
-        ]
+        ],
+        # Добавить параметр per_message=False
+        per_message=False
     )]
+    
