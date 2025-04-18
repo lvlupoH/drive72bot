@@ -52,6 +52,14 @@ def main():
     
     # Запуск бота
     application.run_polling()
+    
+    # Запуск через вебхук
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=config.PORT,
+        webhook_url=config.WEBHOOK_URL,
+        allowed_updates=Update.ALL_TYPES
+    )
 
 if __name__ == "__main__":
     main()
