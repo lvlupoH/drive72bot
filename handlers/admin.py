@@ -12,6 +12,7 @@ from models.database import db
 import hashlib
 import re
 import logging
+from .back import back_handler  # Добавьте эту строку в начало файла
 
 logger = logging.getLogger(__name__)
 
