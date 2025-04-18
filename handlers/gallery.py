@@ -12,3 +12,4 @@ async def handle_gallery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         text="📸 Наши социальные сети:",
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
