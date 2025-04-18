@@ -1,6 +1,6 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
-from config import Config
+from utils.config import Config
 import psycopg2
 
 async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
