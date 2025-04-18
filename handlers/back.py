@@ -43,3 +43,4 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"📦 Тарифы категории {CATEGORIES[category]['title']}:",
             reply_markup=InlineKeyboardMarkup(keyboard)
+        )
