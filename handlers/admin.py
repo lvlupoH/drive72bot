@@ -1,8 +1,8 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CommandHandler, CallbackQueryHandler, filters
 from utils.config import Config
-from models.database import db
 from .back import back_handler  # Добавьте эту строку в начало файла
+from models.database import db
 import hashlib
 import logging
 import re
