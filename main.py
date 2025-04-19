@@ -55,6 +55,10 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_contacts, pattern="^contacts$"))
     application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
+    application.add_handler(CallbackQueryHandler(
+        show_package_details, 
+        pattern="^package_"
+    ))
 
     application.run_webhook(
         listen="0.0.0.0",
