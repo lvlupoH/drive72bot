@@ -56,6 +56,17 @@ class Database:
         finally:
             if self.conn:
                 self.conn.close()
+                
+    def search_student(self, search_term: str):
+        query = """
+             SELECT * FROM students 
+             WHERE fullname ILIKE %s OR phone ILIKE %s
+        """
+        return self.execute_query(query, (f"%{search_term}%", f"%{search_term}%"), fetch=True)
+
+    def delete_student_by_name_and_phone(self, fullname: str, phone: str):
+        query = "DELETE FROM students WHERE fullname = %s AND phone = %s"
+        self.execute_query(query, (fullname, phone))
 
     def delete_student(self, username: str):
         try:
