@@ -8,22 +8,22 @@ CATEGORIES = {
             "МОТО1": {
                 "price": 10000,
                 "desc": "Базовый курс",
-                "details": "✅ Теория ПДД\n✅ 10 практических занятий\n✅ Учебные материалы"
+                "details": "✔️ Теория ПДД\n✔️ 10 практических занятий\n✔️ Учебные материалы"
             },
             "МОТО2": {
                 "price": 15000,
                 "desc": "Продвинутый курс",
-                "details": "✅ Теория ПДД\n✅ 20 практических занятий\n✅ Страховка"
+                "details": "✔️ Теория ПДД\n✔️ 20 практических занятий\n✔️ Страховка"
             },
             "МОТО3": {
                 "price": 20000,
                 "desc": "Базовый курс",
-                "details": "✅ Теория ПДД\n✅ 30 практических занятий\n✅ Учебные материалы"
+                "details": "✔️ Теория ПДД\n✔️ 30 практических занятий\n✔️ Учебные материалы"
             },
             "МОТО4": {
                 "price": 25000,
                 "desc": "Продвинутый курс",
-                "details": "✅ Теория ПДД\n✅ 40 практических занятий\n✅ Страховка"
+                "details": "✔️ Теория ПДД\n✔️ 40 практических занятий\n✔️ Страховка"
             }
         }
     },
@@ -33,22 +33,22 @@ CATEGORIES = {
             "АВТО1": {
                 "price": 20000,
                 "desc": "Базовый курс",
-                "details": "✅ Теория ПДД\n✅ 10 практических занятий\n✅ Учебные материалы"
+                "details": "✔️ Теория ПДД\n✔️ 10 практических занятий\n✔️ Учебные материалы"
             },
             "АВТО2": {
                 "price": 25000,
                 "desc": "Продвинутый курс",
-                "details": "✅ Теория ПДД\n✅ 20 практических занятий\n✅ Страховка"
+                "details": "✔️ Теория ПДД\n✔️ 20 практических занятий\n✔️ Страховка"
             },
             "АВТО3": {
                 "price": 30000,
                 "desc": "Базовый курс",
-                "details": "✅ Теория ПДД\n✅ 30 практических занятий\n✅ Учебные материалы"
+                "details": "✔️ Теория ПДД\n✔️ 30 практических занятий\n✔️ Учебные материалы"
             },
             "АВТО4": {
                 "price": 35000,
                 "desc": "Продвинутый курс",
-                "details": "✅ Теория ПДД\n✅ 40 практических занятий\n✅ Страховка"
+                "details": "✔️ Теория ПДД\n✔️ 40 практических занятий\n✔️ Страховка"
             }
         }
     }
@@ -79,7 +79,8 @@ async def show_packages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_categories")])
     await query.edit_message_text(
-        text=f"{CATEGORIES[category]['title']}\nВыберите тариф:",
+        text=f"*{CATEGORIES[category]['title']}*\nВыберите тариф:",
+        parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
@@ -93,7 +94,7 @@ async def show_package_details(update: Update, context: ContextTypes.DEFAULT_TYP
         f"🏍 *{package}*\n\n"
         f"💰 *Стоимость:* {details['price']}₽\n"
         f"📝 *Описание:* {details['desc']}\n\n"
-        f"📌 *Включено:*\n{details['details'].replace('✅', '✔️')}"
+        f"📌 *Включено:*\n{details['details']}"
     )
     
     keyboard = [
@@ -105,4 +106,4 @@ async def show_package_details(update: Update, context: ContextTypes.DEFAULT_TYP
         text=text,
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
-)
+    )
