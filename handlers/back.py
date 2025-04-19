@@ -4,9 +4,9 @@ from telegram.ext import ContextTypes
 async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    data = query.data
     
-    data = query.data.split('_')
-    if data[1] == "main":
+    if data == "back_main":
         keyboard = [
             [InlineKeyboardButton("Категории", callback_data="categories")],
             [InlineKeyboardButton("Обратный звонок", callback_data="callback_request")],
@@ -19,5 +19,15 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🏠 Главное меню:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
-    
+    elif data == "back_admin":
+        keyboard = [
+            [InlineKeyboardButton("📋 Список учеников", callback_data="students_list")],
+            [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
+            [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
+            [InlineKeyboardButton("🔙 В главное меню", callback_data="back_main")]
+        ]
+        await query.edit_message_text(
+            "⚙️ Админ-панель:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     context.user_data.clear()
