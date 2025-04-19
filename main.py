@@ -6,7 +6,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes
 )
-from config import Config
+from utils.config import Config
 from handlers.categories import handle_categories, show_packages, show_package_details
 from handlers.callbacks import setup_callbacks_handler
 from handlers.admin import get_admin_handler  # Исправленный импорт
