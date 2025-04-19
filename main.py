@@ -1,5 +1,5 @@
 import logging
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -9,7 +9,7 @@ from telegram.ext import (
 from utils.config import Config
 from handlers.categories import handle_categories, show_packages, show_package_details
 from handlers.callbacks import setup_callbacks_handler
-from handlers.admin import get_admin_handler  # Исправленный импорт
+from handlers.admin import get_admin_handler, show_students_list
 from handlers.back import back_handler
 from handlers.gallery import handle_gallery
 from handlers.contacts import handle_contacts
@@ -44,22 +44,18 @@ def main():
         .post_init(post_init) \
         .build()
 
-    # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(handle_categories, pattern="^categories$"))
     application.add_handler(CallbackQueryHandler(show_packages, pattern="^(cat_a|cat_b)$"))
     application.add_handler(CallbackQueryHandler(show_package_details, pattern="^package_"))
     application.add_handler(setup_callbacks_handler())
-    for handler in get_admin_handler():
-        application.add_handler(handler)
+    application.add_handlers(get_admin_handler())
+    application.add_handler(CallbackQueryHandler(show_students_list, pattern="^students_list$"))
     application.add_handler(CallbackQueryHandler(handle_gallery, pattern="^gallery$"))
     application.add_handler(CallbackQueryHandler(handle_contacts, pattern="^contacts$"))
     application.add_handler(CallbackQueryHandler(show_profile, pattern="^profile$"))
     application.add_handler(CallbackQueryHandler(back_handler, pattern="^back_"))
-    application.add_handler(CallbackQueryHandler(show_students_list, pattern="^students_list$"))
-    application.add_handler(CallbackQueryHandler(search_student, pattern="^search_student$"))
 
-    # Запуск через вебхуки
     application.run_webhook(
         listen="0.0.0.0",
         port=Config.PORT,
