@@ -8,6 +8,7 @@ from telegram.ext import (
     filters
 )
 from models import db
+from .back import back_handler
 from utils.config import Config
 import hashlib
 import re
