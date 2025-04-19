@@ -15,8 +15,6 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     text = f"""
     👤 Личный кабинет:
-    
-    Username: @{student[1]}
     ФИО: {student[2]}
     Телефон: {student[3]}
     Категория: {student[4]}
@@ -31,7 +29,6 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     🏫 Адреса автошколы:
     {Config.SCHOOL_ADDRESS}
     """
-    
     await query.edit_message_text(
         text=text,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="back_main")]])
