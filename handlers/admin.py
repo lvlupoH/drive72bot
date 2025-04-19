@@ -1,11 +1,11 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CommandHandler, CallbackQueryHandler, filters
 from utils.config import Config
-from .back import back_handler  # Добавьте эту строку в начало файла
 from models.database import db
 import hashlib
 import logging
 import re
+from .back import back_handler
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +22,9 @@ logger = logging.getLogger(__name__)
     ADD_EXAM_GOS,
     ADD_EXAM_PRACTICE,
     DELETE_STUDENT,
-    SHOW_STUDENTS
-) = range(12)
+    SHOW_STUDENTS,
+    SEARCH_STUDENT
+) = range(13)
 
 ADMIN_PASSWORD_HASH = hashlib.sha256(b"Drive").hexdigest()
 MAX_LOGIN_ATTEMPTS = 3
@@ -56,13 +57,11 @@ async def admin_auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📋 Список учеников", callback_data="students_list")],
         [InlineKeyboardButton("➕ Добавить ученика", callback_data="add_student")],
+        [InlineKeyboardButton("🔍 Поиск ученика", callback_data="search_student")],
         [InlineKeyboardButton("🗑️ Удалить ученика", callback_data="delete_student")],
         [InlineKeyboardButton("🔙 Назад", callback_data="back_main")]
     ]
-    await update.message.reply_text(
-        "⚙️ Админ-панель:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    await update.message.reply_text("⚙️ Админ-панель:", reply_markup=InlineKeyboardMarkup(keyboard))
     return ConversationHandler.END
 
 async def add_student_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -231,16 +230,49 @@ async def show_student_details(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text("❌ Не удалось загрузить данные ученика!")
         return ConversationHandler.END
 
+async def search_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("Введите ФИО или телефон для поиска:")
+    return SEARCH_STUDENT
+
+async def process_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    search_term = update.message.text
+    students = db.search_student(search_term)
+    
+    if not students:
+        await update.message.reply_text("❌ Ученики не найдены!")
+        return ConversationHandler.END
+    
+    buttons = []
+    for student in students:
+        buttons.append([InlineKeyboardButton(
+            f"{student[2]} ({student[3]})", 
+            callback_data=f"student_{student[0]}"
+        )])
+    buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="back_admin")])
+    
+    await update.message.reply_text(
+        "🔍 Результаты поиска:",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+    return SHOW_STUDENTS
+
 async def delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text("Введите username ученика для удаления:")
+    await query.edit_message_text("Введите ФИО и телефон ученика через запятую (Иванов Иван, +79123456789):")
     return DELETE_STUDENT
 
-async def process_delete_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    username = update.message.text
+async def process_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    input_data = update.message.text.split(',')
+    if len(input_data) != 2:
+        await update.message.reply_text("❌ Неверный формат! Пример: Иванов Иван, +79123456789")
+        return DELETE_STUDENT
+    
+    fullname, phone = input_data[0].strip(), input_data[1].strip()
     try:
-        db.delete_student(username)
+        db.delete_student_by_name_and_phone(fullname, phone)
         await update.message.reply_text("✅ Ученик успешно удален!")
     except Exception as e:
         logger.error(f"Ошибка: {str(e)}")
@@ -262,16 +294,14 @@ def get_admin_handler():
                 ADD_EXAM_THEORY: [MessageHandler(filters.TEXT, add_student_exam_theory)],
                 ADD_EXAM_GOS: [MessageHandler(filters.TEXT, add_student_exam_gos)],
                 ADD_EXAM_PRACTICE: [MessageHandler(filters.TEXT, add_student_exam_practice)],
-                DELETE_STUDENT: [MessageHandler(filters.TEXT, process_delete_student)],
+                SEARCH_STUDENT: [MessageHandler(filters.TEXT, process_search)],
+                 DELETE_STUDENT: [MessageHandler(filters.TEXT, process_delete)],
                 SHOW_STUDENTS: [
                     CallbackQueryHandler(show_group_students, pattern="^group_"),
                     CallbackQueryHandler(show_student_details, pattern="^student_")
                 ]
             },
-            fallbacks=[
-                CommandHandler('cancel', lambda update, context: ConversationHandler.END),
-                CallbackQueryHandler(back_handler, pattern="^back_")
-            ]
+            fallbacks=[CallbackQueryHandler(back_handler, pattern="^back_")]
         ),
-        CallbackQueryHandler(show_students_list, pattern="^students_list$")
+        CallbackQueryHandler(search_student, pattern="^search_student$")
     ]
