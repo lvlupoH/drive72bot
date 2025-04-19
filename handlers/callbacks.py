@@ -88,8 +88,9 @@ def setup_callbacks_handler():
             PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
             QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)]
         },
-        fallbacks=[CommandHandler('cancel', lambda update, context: ConversationHandler.END),
-                   CallbackQueryHandler(back_handler, pattern="^back_")],
-        allow_reentry=True,
-        per_message=False
+        fallbacks=[
+            CommandHandler('cancel', lambda update, context: ConversationHandler.END),
+            CallbackQueryHandler(back_handler, pattern="^back_")
+        ],
+        allow_reentry=True  # Убрать параметр per_message=True
     )
