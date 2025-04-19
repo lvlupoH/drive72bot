@@ -88,18 +88,21 @@ async def show_package_details(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.answer()
     _, category, package = query.data.split('_')
     details = CATEGORIES[category]["packages"][package]
-    text = f"""
-    🏍 {package}
-    💰 Стоимость: {details['price']}₽
-    📝 Описание: {details['desc']}
-    📌 Включено:
-    {details['details']}
-    """
+    
+    text = (
+        f"🏍 *{package}*\n\n"
+        f"💰 *Стоимость:* {details['price']}₽\n"
+        f"📝 *Описание:* {details['desc']}\n\n"
+        f"📌 *Включено:*\n{details['details'].replace('✅', '✔️')}"
+    )
+    
     keyboard = [
-        [InlineKeyboardButton("💳 Оплатить", url="https://driveavto72.ru/contacts")],
+        [InlineKeyboardButton("💳 Оплатить онлайн", url="https://driveavto72.ru/contacts")],
         [InlineKeyboardButton("🔙 Назад", callback_data=f"cat_{category}")]
     ]
+    
     await query.edit_message_text(
-        text=text.strip(),
+        text=text,
+        parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+)
