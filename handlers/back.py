@@ -15,6 +15,9 @@ async def back_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Галерея", callback_data="gallery")],
             [InlineKeyboardButton("Личный кабинет", callback_data="profile")]
         ]
-        await query.edit_message_text("🏠 Главное меню:", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.edit_message_text(
+            "🏠 Главное меню:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     
     context.user_data.clear()
